@@ -2,11 +2,14 @@ package leo
 
 import (
 	"errors"
-	"fmt"
+	"runtime"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/panjf2000/ants"
+	"github.com/remeh/sizedwaitgroup"
 	"github.com/zan8in/gologger"
 	"github.com/zan8in/leo/pkg/ssh"
 )
@@ -18,8 +21,18 @@ type Runner struct {
 }
 
 type TargetInfo struct {
+	host     string
 	username string
 	password string
+	m        any
+}
+
+type CallbackInfo struct {
+	Host         string
+	Username     string
+	Password     string
+	Err          error
+	CurrentCount uint32
 }
 
 func NewRunner(options *Options) (*Runner, error) {
@@ -49,20 +62,18 @@ func NewRunner(options *Options) (*Runner, error) {
 		return runner, ErrNoPasses
 	}
 
+	options.Count = uint32(len(options.Hosts) * len(options.Users) * len(options.Passwords))
+
 	options.showBanner()
 
-	// whitespace show banner
-	fmt.Println()
+	gologger.Print().Msg("")
 
 	return runner, nil
 }
 
-func (runner *Runner) Run() error {
+func (runner *Runner) Run(acb ApiCallBack) {
 
-	m, err := runner.validateService()
-	if err != nil {
-		return err
-	}
+	runner.options.ApiCallBack = acb
 
 	Ticker = time.NewTicker(time.Second / time.Duration(runner.options.RateLimit))
 	var wg sync.WaitGroup
@@ -71,43 +82,55 @@ func (runner *Runner) Run() error {
 		defer wg.Done()
 		<-Ticker.C
 
-		targetInfo := p.(*TargetInfo)
+		ti := p.(*TargetInfo)
 
-		err := runner.start(targetInfo.username, targetInfo.password, m)
-		if err != nil {
-			gologger.Debug().Msgf("%s:%s %s", targetInfo.username, targetInfo.password, err.Error())
-			return
-		}
+		err := runner.start(ti.host, ti.username, ti.password, ti.m)
 
-		gologger.Print().Msgf("%s:%s successed!", targetInfo.username, targetInfo.password)
+		atomic.AddUint32(&runner.options.CurrentCount, 1)
+		runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: ti.host, Username: ti.username, Password: ti.password, CurrentCount: runner.options.CurrentCount})
 	})
 	defer p.Release()
 
-	for _, username := range runner.options.Users {
-		for _, password := range runner.options.Passwords {
-			wg.Add(1)
-			p.Invoke(&TargetInfo{username: username, password: password})
+	swg := sizedwaitgroup.New(runtime.NumCPU())
+	for _, host := range runner.options.Hosts {
+		m, err := runner.validateService(host)
+		if err != nil {
+
+			atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
+			runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount})
+
+			continue
 		}
+
+		swg.Add()
+		go func(host string, m any) {
+			defer swg.Done()
+			for _, username := range runner.options.Users {
+				for _, password := range runner.options.Passwords {
+					wg.Add(1)
+					p.Invoke(&TargetInfo{host: host, username: username, password: handlePassword(username, password), m: m})
+				}
+			}
+		}(host, m)
 	}
+	swg.Wait()
 
 	wg.Wait()
-
-	return nil
 }
 
-func (runner *Runner) start(username, password string, m any) error {
+func (runner *Runner) start(host, username, password string, m any) error {
 	service := runner.options.Service
 	if service == SSH_NAME {
 		sshclient := m.(*ssh.SSH)
-		return sshclient.AuthSSHRtries(username, password)
+		return sshclient.AuthSSHRtries(host, username, password)
 	}
 	return nil
 }
 
-func (runner *Runner) validateService() (any, error) {
+func (runner *Runner) validateService(host string) (any, error) {
 	service := runner.options.Service
 	if service == SSH_NAME {
-		m, err := ssh.NewSSH(runner.options.Host, runner.options.Port, runner.options.Retries)
+		m, err := ssh.NewSSH(host, runner.options.Port, runner.options.Retries)
 		if err != nil {
 			return m, err
 		}
@@ -115,4 +138,11 @@ func (runner *Runner) validateService() (any, error) {
 	}
 
 	return nil, errors.New("error")
+}
+
+func handlePassword(username, password string) string {
+	if strings.Contains(password, "%user%") {
+		return strings.ReplaceAll(password, "%user%", username)
+	}
+	return password
 }

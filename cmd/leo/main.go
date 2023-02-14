@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/gookit/color"
+	"github.com/zan8in/gologger"
 	"github.com/zan8in/leo/pkg/leo"
 )
 
@@ -12,15 +16,23 @@ func main() {
 
 	runner, err := leo.NewRunner(options)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		gologger.Fatal().Msg(err.Error())
 	}
 
-	err = runner.Run()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	starttime := time.Now()
+	green := color.Green.Render
 
-	// fmt.Println(options)
+	runner.Run(func(a any) {
+		result := a.(*leo.CallbackInfo)
+
+		if result.Err == nil {
+			gologger.Print().Msgf("\r[%s][%s][%s] username: %s password: %s\r\n", green(options.Service), green(result.Host), green(options.Port), green(result.Username), green(result.Password))
+		} else {
+			gologger.Debug().Msgf("\r[%s][%s][%s] username: %s password: %s, %s\r\n", options.Service, result.Host, options.Port, result.Username, result.Password, result.Err.Error())
+		}
+
+		fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, options.Count, result.CurrentCount*100/options.Count, strings.Split(time.Since(starttime).String(), ".")[0]+"s")
+
+	})
 
 }

@@ -48,15 +48,23 @@ type Options struct {
 	// maximum number of afrog-pocs to be executed in parallel (default 25)
 	Concurrency int
 
+	Hosts     []string
 	Users     []string
 	Passwords []string
+
+	Count        uint32
+	CurrentCount uint32
+
+	ApiCallBack ApiCallBack
 }
+
+type ApiCallBack func(any)
 
 func ParseOptions() *Options {
 
 	ShowBanner()
 
-	options := &Options{}
+	options := &Options{Count: 0, CurrentCount: 0}
 
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`Leo`)
@@ -101,39 +109,77 @@ func ParseOptions() *Options {
 }
 
 func (options *Options) validateOptions() error {
-	if len(options.Target) == 0 {
-		return ErrNoTarget
-	}
+	if len(options.Target) == 0 && len(options.Host) == 0 && len(options.HostFile) == 0 {
+		return ErrNoTargetOrHost
 
-	targetService := strings.Split(options.Target, "://")
-	if len(targetService) != 2 {
-		return ErrTargetFormat
-	}
-
-	options.Service = strings.TrimSpace(targetService[0])
-
-	defaultPort := DefaultServicePort[options.Service]
-	if len(defaultPort.Port) == 0 {
-		return ErrNoService
-	}
-
-	targetPort := strings.Split(targetService[1], ":")
-	if len(targetPort) > 2 {
-		return ErrTargetFormat
-	}
-
-	options.Host = strings.TrimSpace(targetPort[0])
-
-	if len(targetPort) == 1 {
-		options.Port = defaultPort.Port
-	}
-
-	if len(targetPort) == 2 {
-		port := strings.TrimSpace(targetPort[1])
-		if !utils.IsNumeric(port) {
+	} else if len(options.Target) > 0 {
+		targetService := strings.Split(options.Target, "://")
+		if len(targetService) != 2 {
 			return ErrTargetFormat
 		}
-		options.Port = port
+
+		options.Service = strings.TrimSpace(targetService[0])
+
+		defaultPort := DefaultServicePort[options.Service]
+		if len(defaultPort.Port) == 0 {
+			return ErrNoService
+		}
+
+		targetPort := strings.Split(targetService[1], ":")
+		if len(targetPort) > 2 {
+			return ErrTargetFormat
+		}
+
+		options.Host = strings.TrimSpace(targetPort[0])
+		options.Hosts = append(options.Hosts, options.Host)
+
+		if len(targetPort) == 1 {
+			options.Port = defaultPort.Port
+		}
+
+		if len(targetPort) == 2 {
+			port := strings.TrimSpace(targetPort[1])
+			if !utils.IsNumeric(port) {
+				return ErrTargetFormat
+			}
+			options.Port = port
+		}
+
+	} else if len(options.Service) == 0 {
+		return ErrNoService
+
+	} else if len(options.Host) > 0 {
+		options.Hosts = append(options.Hosts, options.Host)
+
+		defaultPort := DefaultServicePort[options.Service]
+		if len(defaultPort.Port) == 0 {
+			return ErrNoService
+		}
+
+		options.Port = defaultPort.Port
+
+	} else if len(options.HostFile) > 0 {
+		hostlist, err := utils.ReadFileLineByLine(options.HostFile)
+		if err != nil {
+			return ErrNoTargetOrHost
+		}
+
+		defaultPort := DefaultServicePort[options.Service]
+		if len(defaultPort.Port) == 0 {
+			return ErrNoService
+		}
+
+		options.Port = defaultPort.Port
+
+		for _, host := range hostlist {
+			hlist := strings.Split(host, ":")
+			if len(hlist) > 0 {
+				host = hlist[0]
+			}
+			options.Hosts = append(options.Hosts, strings.TrimSpace(host))
+		}
+	} else {
+		return ErrNoOther
 	}
 
 	if options.Debug {

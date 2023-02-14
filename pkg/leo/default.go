@@ -1,17 +1,23 @@
 package leo
 
-import "strings"
+import (
+	"embed"
+	"strings"
+)
+
+//go:embed dics/*
+var f embed.FS
 
 const (
-	SSH_NAME  = "ssh"
-	SSH_PORT  = "22"
-	SSH_USERS = "root,kali"
-	SSH_PWDS  = "root,kali"
+	SSH_NAME      = "ssh"
+	SSH_PORT      = "22"
+	SSH_USER_DICS = "dics/ssh_user.txt"
+	SSH_PWDS_DICS = "dics/ssh_pass.txt"
 
-	FTP_NAME  = "ftp"
-	FTP_PORT  = "21"
-	FTP_USERS = "test"
-	FTP_PWDS  = "test"
+	FTP_NAME      = "ftp"
+	FTP_PORT      = "21"
+	FTP_USER_DICS = "dics/ftp_user.txt"
+	FTP_PWDS_DICS = "dics/ftp_pass.txt"
 )
 
 type DefaultService struct {
@@ -23,16 +29,26 @@ type DefaultService struct {
 var DefaultServicePort = map[string]DefaultService{
 	SSH_NAME: DefaultService{
 		Port:      SSH_PORT,
-		Users:     str2Slice(SSH_USERS),
-		Passwords: str2Slice(SSH_PWDS),
+		Users:     getDicsFromPath(SSH_USER_DICS),
+		Passwords: getDicsFromPath(SSH_PWDS_DICS),
 	},
 	FTP_NAME: DefaultService{
 		Port:      FTP_PORT,
-		Users:     str2Slice(FTP_USERS),
-		Passwords: str2Slice(FTP_PWDS),
+		Users:     getDicsFromPath(FTP_USER_DICS),
+		Passwords: getDicsFromPath(FTP_PWDS_DICS),
 	},
 }
 
-func str2Slice(str string) []string {
-	return strings.Split(str, ",")
+func getDicsFromPath(path string) []string {
+	var result []string
+
+	file, err := f.ReadFile(path)
+	if err != nil {
+		return result
+	}
+
+	flist := strings.Split(string(file), "\r\n")
+	result = append(result, flist...)
+
+	return result
 }
