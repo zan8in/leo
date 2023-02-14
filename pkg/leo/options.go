@@ -156,7 +156,9 @@ func (options *Options) validateOptions() error {
 			return ErrNoService
 		}
 
-		options.Port = defaultPort.Port
+		if len(options.Port) == 0 {
+			options.Port = defaultPort.Port
+		}
 
 	} else if len(options.HostFile) > 0 {
 		hostlist, err := utils.ReadFileLineByLine(options.HostFile)
@@ -169,7 +171,9 @@ func (options *Options) validateOptions() error {
 			return ErrNoService
 		}
 
-		options.Port = defaultPort.Port
+		if len(options.Port) == 0 {
+			options.Port = defaultPort.Port
+		}
 
 		for _, host := range hostlist {
 			hlist := strings.Split(host, ":")
