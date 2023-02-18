@@ -1,8 +1,8 @@
 package ssh
 
 import (
-	"bytes"
 	"errors"
+	"log"
 	"net"
 	"strings"
 	"time"
@@ -22,6 +22,7 @@ var (
 	ErrNoSSH          = errors.New("ssh connection failed")
 	ErrRtries         = errors.New("retries exceeded")
 	ErrNoHost         = errors.New("no input host provided")
+	ErrNoSession      = errors.New("no session")
 	default_ssh_port  = "22"
 	check_live_rtries = 3
 	keyExchanges      = []string{"diffie-hellman-group-exchange-sha256", "diffie-hellman-group14-sha256", "diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"}
@@ -93,17 +94,17 @@ func (s *SSH) authSSH(host, username, password string) error {
 	}
 	defer session.Close()
 
-	var b bytes.Buffer
-	session.Stdout = &b
-	if err := session.Run("ls"); err != nil {
-		return err
+	output, err := session.Output("ls")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if b.Len() > 0 {
+	if len(output) > 0 {
+		// fmt.Println(s.host + ":" + s.port + ":" + username + ":" + password + "===================================================" + string(output))
 		return nil
 	}
 
-	return err
+	return ErrNoSession
 }
 
 func (s *SSH) checkRtries() error {
