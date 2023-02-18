@@ -51,8 +51,12 @@ type Options struct {
 
 	// maximum number of requests to send per second (default 150)
 	RateLimit int
+
 	// maximum number of afrog-pocs to be executed in parallel (default 25)
 	Concurrency int
+
+	// write found login/password pairs to FILE instead of stdout
+	Output string
 
 	Hosts     []string
 	Users     []string
@@ -97,6 +101,7 @@ func ParseOptions() *Options {
 		flagSet.IntVar(&options.Retries, "retries", 10, "number of times to retry a failed request"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "time to wait in seconds before timeout"),
 		flagSet.BoolVar(&options.Silent, "silent", false, "no progress, only results"),
+		flagSet.StringVarP(&options.Output, "o", "", "", "write found login/password pairs to FILE"),
 	)
 
 	flagSet.CreateGroup("update", "Update",

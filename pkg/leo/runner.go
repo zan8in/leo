@@ -11,6 +11,7 @@ import (
 	"github.com/panjf2000/ants"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/zan8in/gologger"
+	"github.com/zan8in/leo/pkg/utils"
 )
 
 var Ticker *time.Ticker
@@ -146,20 +147,37 @@ func (runner *Runner) Listener() {
 
 	for result := range runner.callbackchan {
 		if result.Err == nil && result.Status != STATUS_COMPLATE {
-			gologger.Print().Msgf("\r[%s][%s][%s] username: %s password: %s |||||||||||||||||||||||||||||||||\r\n", runner.options.Service, result.Host, runner.options.Port, result.Username, result.Password)
+			info := fmt.Sprintf("[%s][%s] %s %s %s", runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password)
+			gologger.Print().Msg(info)
+			runner.options.SuccessList = append(runner.options.SuccessList, info)
 		}
 		if result.Err == nil && result.Status == STATUS_COMPLATE {
-			return
+			break
 		}
 		if result.Err != nil && result.Status != STATUS_FAILED {
-			gologger.Debug().Msgf("\r[%s][%s][%s] username: %s password: %s, %s\r\n", runner.options.Service, result.Host, runner.options.Port, result.Username, result.Password, result.Err.Error())
+			gologger.Debug().Msgf("\r[%s][%s] %s %s %s, %s\r\n", runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password, result.Err.Error())
 		}
 		if result.Err != nil && result.Status == STATUS_FAILED {
-			gologger.Error().Msgf("[%s][%s][%s] Connection failed, %s\r\n", runner.options.Service, result.Host, runner.options.Port, result.Err.Error())
+			gologger.Error().Msgf("[%s][%s] %s, Connection failed, %s\r\n", runner.options.Port, runner.options.Service, result.Host, result.Err.Error())
 		}
 		if !runner.options.Silent {
 			fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, runner.options.Count, result.CurrentCount*100/runner.options.Count, strings.Split(time.Since(starttime).String(), ".")[0]+"s")
 		}
 	}
+
+	gologger.Print().Msgf("")
+	gologger.Print().Msgf("%d of %d target successfully completed, %d valid password found\r\n", len(runner.options.Hosts), len(runner.options.Hosts), len(runner.options.SuccessList))
+
+	if len(runner.options.SuccessList) > 0 && len(runner.options.Output) > 0 {
+		for _, info := range runner.options.SuccessList {
+			err := utils.WriteString(runner.options.Output, info+"\r\n")
+			if err != nil {
+				gologger.Fatal().Msgf("write file failed, %s\r\n", err.Error())
+			}
+		}
+		gologger.Print().Msgf("write found login/password pairs to FILE: %s", runner.options.Output)
+	}
+
+	gologger.Print().Msgf("Leo finished at %s\r\n", utils.GetNowDateTime())
 
 }

@@ -23,3 +23,17 @@ func ReadFileLineByLine(filename string) ([]string, error) {
 	}
 	return result, err
 }
+
+func WriteString(filename, content string) error {
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	wbuf := bufio.NewWriterSize(file, len(content))
+	wbuf.WriteString(content)
+	wbuf.Flush()
+
+	return nil
+}
