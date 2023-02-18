@@ -9,6 +9,8 @@ import (
 var f embed.FS
 
 const (
+	DEFAULT_PASS_FILE = "dics/default_pass.txt"
+
 	SSH_NAME      = "ssh"
 	SSH_PORT      = "22"
 	SSH_USER_DICS = "dics/ssh_user.txt"
@@ -23,6 +25,7 @@ const (
 const (
 	STATUS_SUCCESS = 1
 	STATUS_FAILED
+	STATUS_COMPLATE
 )
 
 type DefaultService struct {
@@ -42,6 +45,10 @@ var DefaultServicePort = map[string]DefaultService{
 		Users:     getDicsFromPath(FTP_USER_DICS),
 		Passwords: getDicsFromPath(FTP_PWDS_DICS),
 	},
+}
+
+func initPasswords() []string {
+	return getDicsFromPath(DEFAULT_PASS_FILE)
 }
 
 func getDicsFromPath(path string) []string {

@@ -1,6 +1,7 @@
 package leo
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -15,8 +16,9 @@ import (
 var Ticker *time.Ticker
 
 type Runner struct {
-	options *Options
-	execute *Execute
+	options      *Options
+	execute      *Execute
+	callbackchan chan *CallbackInfo
 }
 
 type TargetInfo struct {
@@ -37,7 +39,8 @@ type CallbackInfo struct {
 
 func NewRunner(options *Options) (*Runner, error) {
 	runner := &Runner{
-		options: options,
+		options:      options,
+		callbackchan: make(chan *CallbackInfo),
 	}
 
 	defaultPort := DefaultServicePort[options.Service]
@@ -51,6 +54,8 @@ func NewRunner(options *Options) (*Runner, error) {
 	if len(options.Users) == 0 {
 		return runner, ErrNoUsers
 	}
+
+	options.Passwords = initPasswords()
 
 	if len(options.Password) == 0 && len(options.PasswordFile) == 0 {
 		options.Passwords = append(options.Passwords, defaultPort.Passwords...)
@@ -73,53 +78,54 @@ func NewRunner(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
-func (runner *Runner) Run(acb ApiCallBack) {
+func (runner *Runner) Run() {
+	go func() {
+		Ticker = time.NewTicker(time.Second / time.Duration(runner.options.RateLimit))
+		var wg sync.WaitGroup
 
-	runner.options.ApiCallBack = acb
+		p, _ := ants.NewPoolWithFunc(runner.options.Concurrency, func(p any) {
+			defer wg.Done()
+			<-Ticker.C
 
-	Ticker = time.NewTicker(time.Second / time.Duration(runner.options.RateLimit))
-	var wg sync.WaitGroup
+			ti := p.(*TargetInfo)
 
-	p, _ := ants.NewPoolWithFunc(runner.options.Concurrency, func(p any) {
-		defer wg.Done()
-		<-Ticker.C
+			err := runner.execute.start(ti.host, ti.username, ti.password, ti.m)
 
-		ti := p.(*TargetInfo)
+			atomic.AddUint32(&runner.options.CurrentCount, 1)
+			runner.callbackchan <- &CallbackInfo{Err: err, Host: ti.host, Username: ti.username, Password: ti.password, CurrentCount: runner.options.CurrentCount}
+		})
+		defer p.Release()
 
-		err := runner.execute.start(ti.host, ti.username, ti.password, ti.m)
+		swg := sizedwaitgroup.New(runtime.NumCPU())
+		for _, host := range runner.options.Hosts {
 
-		atomic.AddUint32(&runner.options.CurrentCount, 1)
-		runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: ti.host, Username: ti.username, Password: ti.password, CurrentCount: runner.options.CurrentCount})
-	})
-	defer p.Release()
+			swg.Add()
+			go func(host string) {
+				defer swg.Done()
 
-	swg := sizedwaitgroup.New(runtime.NumCPU())
-	for _, host := range runner.options.Hosts {
+				m, err := runner.execute.validateService(host)
+				if err != nil {
 
-		swg.Add()
-		go func(host string) {
-			defer swg.Done()
+					atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
+					runner.callbackchan <- &CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_FAILED}
 
-			m, err := runner.execute.validateService(host)
-			if err != nil {
-
-				atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
-				runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_FAILED})
-
-				return
-			}
-
-			for _, username := range runner.options.Users {
-				for _, password := range runner.options.Passwords {
-					wg.Add(1)
-					p.Invoke(&TargetInfo{host: host, username: username, password: handlePassword(username, password), m: m})
+					return
 				}
-			}
-		}(host)
-	}
-	swg.Wait()
 
-	wg.Wait()
+				for _, username := range runner.options.Users {
+					for _, password := range runner.options.Passwords {
+						wg.Add(1)
+						p.Invoke(&TargetInfo{host: host, username: username, password: handlePassword(username, password), m: m})
+					}
+				}
+			}(host)
+		}
+		swg.Wait()
+
+		wg.Wait()
+
+		runner.callbackchan <- &CallbackInfo{Err: nil, Host: "", Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_COMPLATE}
+	}()
 }
 
 func handlePassword(username, password string) string {
@@ -127,4 +133,30 @@ func handlePassword(username, password string) string {
 		return strings.ReplaceAll(password, "%user%", username)
 	}
 	return password
+}
+
+func (runner *Runner) Listener() {
+
+	defer close(runner.callbackchan)
+
+	starttime := time.Now()
+
+	for result := range runner.callbackchan {
+		if result.Err == nil && result.Status != STATUS_COMPLATE {
+			gologger.Print().Msgf("\r[%s][%s][%s] username: %s password: %s |||||||||||||||||||||||||||||||||\r\n", runner.options.Service, result.Host, runner.options.Port, result.Username, result.Password)
+		}
+		if result.Err == nil && result.Status == STATUS_COMPLATE {
+			return
+		}
+		if result.Err != nil && result.Status != STATUS_FAILED {
+			gologger.Debug().Msgf("\r[%s][%s][%s] username: %s password: %s, %s\r\n", runner.options.Service, result.Host, runner.options.Port, result.Username, result.Password, result.Err.Error())
+		}
+		if result.Err != nil && result.Status == STATUS_FAILED {
+			gologger.Error().Msgf("[%s][%s][%s] Connection failed, %s\r\n", runner.options.Service, result.Host, runner.options.Port, result.Err.Error())
+		}
+		if !runner.options.Silent {
+			fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, runner.options.Count, result.CurrentCount*100/runner.options.Count, strings.Split(time.Since(starttime).String(), ".")[0]+"s")
+		}
+	}
+
 }

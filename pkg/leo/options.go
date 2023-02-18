@@ -61,16 +61,14 @@ type Options struct {
 	Count        uint32
 	CurrentCount uint32
 
-	ApiCallBack ApiCallBack
+	SuccessList []string
 }
-
-type ApiCallBack func(any)
 
 func ParseOptions() *Options {
 
 	ShowBanner()
 
-	options := &Options{Count: 0, CurrentCount: 0}
+	options := &Options{Count: 0, CurrentCount: 0, SuccessList: []string{}}
 
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`Leo`)

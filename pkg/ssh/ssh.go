@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bytes"
 	"errors"
 	"net"
 	"strings"
@@ -66,7 +67,8 @@ func (s *SSH) AuthSSHRtries(host, username, password string) error {
 			sum++
 			time.Sleep(500 * time.Millisecond)
 			continue
-		} else if err != nil {
+		}
+		if err != nil {
 			return err
 		}
 
@@ -85,7 +87,23 @@ func (s *SSH) authSSH(host, username, password string) error {
 	}
 	defer client.Close()
 
-	return nil
+	session, err := client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	var b bytes.Buffer
+	session.Stdout = &b
+	if err := session.Run("ls"); err != nil {
+		return err
+	}
+
+	if b.Len() > 0 {
+		return nil
+	}
+
+	return err
 }
 
 func (s *SSH) checkRtries() error {
