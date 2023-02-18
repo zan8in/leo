@@ -132,6 +132,9 @@ func handlePassword(username, password string) string {
 	if strings.Contains(password, "%user%") {
 		return strings.ReplaceAll(password, "%user%", username)
 	}
+	if strings.Contains(password, "%upper-user%") {
+		return strings.ReplaceAll(password, "%upper-user%", strings.ToUpper(username)[:1]+username[1:])
+	}
 	return password
 }
 
