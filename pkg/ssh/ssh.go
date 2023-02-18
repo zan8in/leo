@@ -10,21 +10,23 @@ import (
 )
 
 type SSH struct {
-	host   string
-	port   string
-	config ssh.ClientConfig
-	rtries int
+	host            string
+	port            string
+	config          ssh.ClientConfig
+	rtries          int
+	checkLiveRtries int
 }
 
 var (
-	ErrNoSSH         = errors.New("no live ssh")
-	ErrRtries        = errors.New("retries exceeded")
-	ErrNoHost        = errors.New("no input host provided")
-	default_ssh_port = "22"
-	keyExchanges     = []string{"diffie-hellman-group-exchange-sha256", "diffie-hellman-group14-sha256", "diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"}
+	ErrNoSSH          = errors.New("ssh connection failed")
+	ErrRtries         = errors.New("retries exceeded")
+	ErrNoHost         = errors.New("no input host provided")
+	default_ssh_port  = "22"
+	check_live_rtries = 3
+	keyExchanges      = []string{"diffie-hellman-group-exchange-sha256", "diffie-hellman-group14-sha256", "diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"}
 )
 
-func NewSSH(host, port string, rtries int) (*SSH, error) {
+func NewSSH(host, port string, rtries, Timeout int) (*SSH, error) {
 	if len(host) == 0 {
 		return nil, ErrNoHost
 	}
@@ -42,7 +44,7 @@ func NewSSH(host, port string, rtries int) (*SSH, error) {
 
 	config.KeyExchanges = append(config.KeyExchanges, keyExchanges...)
 
-	ssh := &SSH{host: host, port: port, config: config, rtries: rtries}
+	ssh := &SSH{host: host, port: port, config: config, rtries: rtries, checkLiveRtries: check_live_rtries}
 
 	err := ssh.checkRtries()
 	if err != nil {
@@ -60,18 +62,6 @@ func (s *SSH) AuthSSHRtries(host, username, password string) error {
 		}
 
 		err := s.authSSH(host, username, password)
-		// if err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host") && sum <= s.rtries {
-		// 	sum++
-		// 	continue
-		// } else if err != nil && strings.Contains(err.Error(), "handshake failed: EOF") && sum <= s.rtries {
-		// 	sum++
-		// 	continue
-		// } else if err != nil && strings.Contains(err.Error(), "An established connection was aborted by the software in your host machine") && sum <= s.rtries {
-		// 	sum++
-		// 	continue
-		// } else if err != nil {
-		// 	return err
-		// }
 		if err != nil && !strings.Contains(err.Error(), "unable to authenticate") {
 			sum++
 			time.Sleep(500 * time.Millisecond)
@@ -99,13 +89,14 @@ func (s *SSH) authSSH(host, username, password string) error {
 }
 
 func (s *SSH) checkRtries() error {
+	var err error
 	sum := 0
 	for {
-		if sum > s.rtries {
-			return ErrRtries
+		if sum > s.checkLiveRtries {
+			return errors.New(ErrRtries.Error() + ", " + err.Error())
 		}
 
-		_, err := s.check()
+		_, err = s.check()
 		if err != nil && !strings.Contains(err.Error(), "No connection could be made") {
 			sum++
 			time.Sleep(500 * time.Millisecond)
@@ -119,8 +110,8 @@ func (s *SSH) checkRtries() error {
 }
 
 func (s *SSH) check() (bool, error) {
-	s.config.User = "username"
-	s.config.Auth = []ssh.AuthMethod{ssh.Password("password")}
+	s.config.User = "root"
+	s.config.Auth = []ssh.AuthMethod{ssh.Password("root")}
 
 	client, err := ssh.Dial("tcp", s.host+":"+s.port, &s.config)
 	if err != nil {

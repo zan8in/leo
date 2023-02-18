@@ -1,7 +1,6 @@
 package leo
 
 import (
-	"errors"
 	"runtime"
 	"strings"
 	"sync"
@@ -11,13 +10,13 @@ import (
 	"github.com/panjf2000/ants"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/zan8in/gologger"
-	"github.com/zan8in/leo/pkg/ssh"
 )
 
 var Ticker *time.Ticker
 
 type Runner struct {
 	options *Options
+	execute *Execute
 }
 
 type TargetInfo struct {
@@ -33,6 +32,7 @@ type CallbackInfo struct {
 	Password     string
 	Err          error
 	CurrentCount uint32
+	Status       int
 }
 
 func NewRunner(options *Options) (*Runner, error) {
@@ -68,6 +68,8 @@ func NewRunner(options *Options) (*Runner, error) {
 
 	gologger.Print().Msg("")
 
+	runner.execute = NewExecute(options)
+
 	return runner, nil
 }
 
@@ -84,7 +86,7 @@ func (runner *Runner) Run(acb ApiCallBack) {
 
 		ti := p.(*TargetInfo)
 
-		err := runner.start(ti.host, ti.username, ti.password, ti.m)
+		err := runner.execute.start(ti.host, ti.username, ti.password, ti.m)
 
 		atomic.AddUint32(&runner.options.CurrentCount, 1)
 		runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: ti.host, Username: ti.username, Password: ti.password, CurrentCount: runner.options.CurrentCount})
@@ -93,51 +95,31 @@ func (runner *Runner) Run(acb ApiCallBack) {
 
 	swg := sizedwaitgroup.New(runtime.NumCPU())
 	for _, host := range runner.options.Hosts {
-		m, err := runner.validateService(host)
-		if err != nil {
-
-			atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
-			runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount})
-
-			continue
-		}
 
 		swg.Add()
-		go func(host string, m any) {
+		go func(host string) {
 			defer swg.Done()
+
+			m, err := runner.execute.validateService(host)
+			if err != nil {
+
+				atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
+				runner.options.ApiCallBack(&CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_FAILED})
+
+				return
+			}
+
 			for _, username := range runner.options.Users {
 				for _, password := range runner.options.Passwords {
 					wg.Add(1)
 					p.Invoke(&TargetInfo{host: host, username: username, password: handlePassword(username, password), m: m})
 				}
 			}
-		}(host, m)
+		}(host)
 	}
 	swg.Wait()
 
 	wg.Wait()
-}
-
-func (runner *Runner) start(host, username, password string, m any) error {
-	service := runner.options.Service
-	if service == SSH_NAME {
-		sshclient := m.(*ssh.SSH)
-		return sshclient.AuthSSHRtries(host, username, password)
-	}
-	return nil
-}
-
-func (runner *Runner) validateService(host string) (any, error) {
-	service := runner.options.Service
-	if service == SSH_NAME {
-		m, err := ssh.NewSSH(host, runner.options.Port, runner.options.Retries)
-		if err != nil {
-			return m, err
-		}
-		return m, nil
-	}
-
-	return nil, errors.New("error")
 }
 
 func handlePassword(username, password string) string {

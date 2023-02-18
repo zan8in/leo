@@ -34,6 +34,12 @@ type Options struct {
 	// -P password.txt
 	PasswordFile string
 
+	// no progress if silent is true
+	Silent bool
+
+	// no progress if silent is true
+	Update bool
+
 	// -t Timeout
 	Timeout int
 
@@ -92,6 +98,11 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("optimization", "Optimizations",
 		flagSet.IntVar(&options.Retries, "retries", 10, "number of times to retry a failed request"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "time to wait in seconds before timeout"),
+		flagSet.BoolVar(&options.Silent, "silent", false, "no progress, only results"),
+	)
+
+	flagSet.CreateGroup("update", "Update",
+		flagSet.BoolVar(&options.Update, "update", false, "update leo engine to the latest released version"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -176,6 +187,9 @@ func (options *Options) validateOptions() error {
 		}
 
 		for _, host := range hostlist {
+			if len(strings.TrimSpace(host)) == 0 {
+				continue
+			}
 			hlist := strings.Split(host, ":")
 			if len(hlist) > 0 {
 				host = hlist[0]

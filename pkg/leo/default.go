@@ -20,6 +20,11 @@ const (
 	FTP_PWDS_DICS = "dics/ftp_pass.txt"
 )
 
+const (
+	STATUS_SUCCESS = 1
+	STATUS_FAILED
+)
+
 type DefaultService struct {
 	Port      string
 	Users     []string
