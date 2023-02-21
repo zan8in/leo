@@ -3,7 +3,8 @@ module github.com/zan8in/leo
 go 1.19
 
 require (
-	github.com/panjf2000/ants v1.3.0
+	github.com/go-sql-driver/mysql v1.7.0
+	github.com/panjf2000/ants/v2 v2.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/tj/go-update v2.2.4+incompatible
@@ -18,7 +19,6 @@ require (
 	github.com/c4milo/unpackit v1.0.0 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect

@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/panjf2000/ants"
+	"github.com/panjf2000/ants/v2"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/zan8in/gologger"
 	"github.com/zan8in/leo/pkg/utils"
@@ -20,6 +20,8 @@ type Runner struct {
 	options      *Options
 	execute      *Execute
 	callbackchan chan *CallbackInfo
+
+	syncfile *utils.Syncfile
 }
 
 type TargetInfo struct {
@@ -39,9 +41,12 @@ type CallbackInfo struct {
 }
 
 func NewRunner(options *Options) (*Runner, error) {
+	var err error
+
 	runner := &Runner{
 		options:      options,
 		callbackchan: make(chan *CallbackInfo),
+		syncfile:     &utils.Syncfile{},
 	}
 
 	defaultPort := DefaultServicePort[options.Service]
@@ -75,6 +80,13 @@ func NewRunner(options *Options) (*Runner, error) {
 	gologger.Print().Msg("")
 
 	runner.execute = NewExecute(options)
+
+	if len(options.Output) > 0 {
+		runner.syncfile, err = utils.NewSyncfile(options.Output)
+		if err != nil {
+			return runner, err
+		}
+	}
 
 	return runner, nil
 }
@@ -146,35 +158,47 @@ func (runner *Runner) Listener() {
 	starttime := time.Now()
 
 	for result := range runner.callbackchan {
+		port, service, host, user, pass := runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password
+
 		if result.Err == nil && result.Status != STATUS_COMPLATE {
-			info := fmt.Sprintf("[%s][%s] %s %s %s", runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password)
-			gologger.Print().Msg(info)
-			runner.options.SuccessList = append(runner.options.SuccessList, info)
+			info := fmt.Sprintf("\r[%s][%s] %s %s %s\r\n", port, service, host, user, pass)
+
+			gologger.Print().Msgf(info)
+
+			if len(runner.options.Output) > 0 {
+				go func() {
+					runner.syncfile.Write(strings.TrimSpace(info) + "\n")
+					runner.options.SuccessList = append(runner.options.SuccessList, strings.TrimSpace(info))
+				}()
+			}
 		}
 		if result.Err == nil && result.Status == STATUS_COMPLATE {
+			time.Sleep(3 * time.Second)
 			break
 		}
 		if result.Err != nil && result.Status != STATUS_FAILED {
-			gologger.Debug().Msgf("\r[%s][%s] %s %s %s, %s\r\n", runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password, result.Err.Error())
+			gologger.Debug().Msgf("\r[%s][%s] %s %s %s, %s\r\n", port, service, host, user, pass, result.Err.Error())
 		}
 		if result.Err != nil && result.Status == STATUS_FAILED {
-			gologger.Error().Msgf("[%s][%s] %s, Connection failed, %s\r\n", runner.options.Port, runner.options.Service, result.Host, result.Err.Error())
+			gologger.Error().Msgf("\r[%s][%s] %s, Connection failed, %s\r\n", port, service, host, result.Err.Error())
 		}
 		if !runner.options.Silent {
-			fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, runner.options.Count, result.CurrentCount*100/runner.options.Count, strings.Split(time.Since(starttime).String(), ".")[0]+"s")
+			fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, runner.options.Count, result.CurrentCount*100/runner.options.Count,
+				strings.Split(time.Since(starttime).String(), ".")[0]+"s")
 		}
 	}
 
 	gologger.Print().Msgf("")
-	gologger.Print().Msgf("%d of %d target successfully completed, %d valid password found\r\n", len(runner.options.Hosts), len(runner.options.Hosts), len(runner.options.SuccessList))
+	gologger.Print().Msgf("%d of %d target successfully completed, %d valid password found\r\n",
+		len(runner.options.Hosts), len(runner.options.Hosts), len(runner.options.SuccessList))
 
 	if len(runner.options.SuccessList) > 0 && len(runner.options.Output) > 0 {
-		for _, info := range runner.options.SuccessList {
-			err := utils.WriteString(runner.options.Output, info+"\r\n")
-			if err != nil {
-				gologger.Fatal().Msgf("write file failed, %s\r\n", err.Error())
-			}
-		}
+		// for _, info := range runner.options.SuccessList {
+		// 	err := utils.WriteString(runner.options.Output, info+"\r\n")
+		// 	if err != nil {
+		// 		gologger.Fatal().Msgf("write file failed, %s\r\n", err.Error())
+		// 	}
+		// }
 		gologger.Print().Msgf("write found login/password pairs to FILE: %s", runner.options.Output)
 	}
 

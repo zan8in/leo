@@ -257,6 +257,10 @@ func (options *Options) showBanner() {
 		gologger.Info().Msgf("Host: %s", options.Host)
 	}
 
+	if len(options.HostFile) > 0 {
+		gologger.Info().Msgf("Host File: %s", options.HostFile)
+	}
+
 	if len(options.Port) > 0 {
 		gologger.Info().Msgf("Port: %s", options.Port)
 	}

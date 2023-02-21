@@ -18,5 +18,5 @@ _/_/_/_/  _/_/_/_/    _/_/    %s
 
 func ShowBanner() {
 	gologger.Print().Msgf("%s\n", banner)
-	gologger.Print().Msgf("\t\t\tThe Wandering Earth 2\n\n")
+	gologger.Print().Msgf("\t\t\thttps://github.com/zan8in/leo\n\n")
 }

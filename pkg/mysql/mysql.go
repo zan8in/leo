@@ -4,27 +4,25 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type MYSQL struct {
-	host            string
-	port            string
-	retries         int
-	checkLiveRtries int
+	host    string
+	port    string
+	retries int
 }
 
 var (
-	ErrNoMYSQL         = errors.New("mysql connection failed")
 	ErrRtries          = errors.New("retries exceeded")
 	ErrNoHost          = errors.New("no input host provided")
-	ErrNoSession       = errors.New("no session")
 	default_mysql_port = "3306"
-	check_live_rtries  = 3
 
-	TlsErr = "TLS requested but server does not support TLS"
+	ErrBusyBuffer  = "busy buffer"
+	ErrOldPassword = "this user requires old password authentication"
 )
 
 func New(host, port string, retries, Timeout int) (*MYSQL, error) {
@@ -36,7 +34,7 @@ func New(host, port string, retries, Timeout int) (*MYSQL, error) {
 		port = default_mysql_port
 	}
 
-	mysql := &MYSQL{host: host, port: port, retries: retries, checkLiveRtries: check_live_rtries}
+	mysql := &MYSQL{host: host, port: port, retries: retries}
 
 	return mysql, nil
 }
@@ -53,6 +51,10 @@ func (mysql *MYSQL) AuthRetries(user, password string) (err error) {
 			sum++
 			time.Sleep(500 * time.Millisecond)
 			continue
+		}
+
+		if err != nil && strings.Contains(err.Error(), ErrOldPassword) {
+			return nil
 		}
 
 		return nil
