@@ -28,7 +28,7 @@ var (
 	keyExchanges      = []string{"diffie-hellman-group-exchange-sha256", "diffie-hellman-group14-sha256", "diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"}
 )
 
-func NewSSH(host, port string, rtries, Timeout int) (*SSH, error) {
+func New(host, port string, rtries, Timeout int) (*SSH, error) {
 	if len(host) == 0 {
 		return nil, ErrNoHost
 	}
@@ -56,7 +56,7 @@ func NewSSH(host, port string, rtries, Timeout int) (*SSH, error) {
 	return ssh, nil
 }
 
-func (s *SSH) AuthSSHRtries(host, username, password string) error {
+func (s *SSH) AuthRtries(host, username, password string) error {
 	sum := 0
 	for {
 		if sum > s.rtries {

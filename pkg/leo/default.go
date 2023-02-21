@@ -16,10 +16,10 @@ const (
 	SSH_USER_DICS = "dics/ssh_user.txt"
 	SSH_PWDS_DICS = "dics/ssh_pass.txt"
 
-	FTP_NAME      = "ftp"
-	FTP_PORT      = "21"
-	FTP_USER_DICS = "dics/ftp_user.txt"
-	FTP_PWDS_DICS = "dics/ftp_pass.txt"
+	MYSQL_NAME      = "mysql"
+	MYSQL_PORT      = "3306"
+	MYSQL_USER_DICS = "dics/mysql_user.txt"
+	MYSQL_PWDS_DICS = "dics/mysql_pass.txt"
 )
 
 const (
@@ -35,15 +35,15 @@ type DefaultService struct {
 }
 
 var DefaultServicePort = map[string]DefaultService{
-	SSH_NAME: DefaultService{
+	SSH_NAME: {
 		Port:      SSH_PORT,
 		Users:     getDicsFromPath(SSH_USER_DICS),
 		Passwords: getDicsFromPath(SSH_PWDS_DICS),
 	},
-	FTP_NAME: DefaultService{
-		Port:      FTP_PORT,
-		Users:     getDicsFromPath(FTP_USER_DICS),
-		Passwords: getDicsFromPath(FTP_PWDS_DICS),
+	MYSQL_NAME: {
+		Port:      MYSQL_PORT,
+		Users:     getDicsFromPath(MYSQL_USER_DICS),
+		Passwords: getDicsFromPath(MYSQL_PWDS_DICS),
 	},
 }
 

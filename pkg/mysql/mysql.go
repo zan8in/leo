@@ -27,7 +27,7 @@ var (
 	TlsErr = "TLS requested but server does not support TLS"
 )
 
-func NewMYSQL(host, port string, retries, Timeout int) (*MYSQL, error) {
+func New(host, port string, retries, Timeout int) (*MYSQL, error) {
 	if len(host) == 0 {
 		return nil, ErrNoHost
 	}
@@ -41,7 +41,7 @@ func NewMYSQL(host, port string, retries, Timeout int) (*MYSQL, error) {
 	return mysql, nil
 }
 
-func (mysql *MYSQL) AuthMYSQLRtries(user, password string) (err error) {
+func (mysql *MYSQL) AuthRetries(user, password string) (err error) {
 	sum := 0
 	for {
 		if sum > mysql.retries {
