@@ -1,0 +1,16 @@
+root
+admin
+test
+oracle
+user
+postgres
+mysql
+backup
+guest
+system
+web
+guest
+tomcat
+sys
+ftp
+www
