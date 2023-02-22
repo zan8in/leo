@@ -124,14 +124,6 @@ func ParseOptions() *Options {
 
 	_ = flagSet.Parse()
 
-	if options.Update {
-		err := UpdateVersionToLatest(true)
-		if err != nil {
-			gologger.Fatal().Msg("Failed update Leo engine to the latest released version")
-		}
-		return nil
-	}
-
 	err := options.validateOptions()
 	if err != nil {
 		gologger.Fatal().Msgf("Program exiting: %s\n", err)
