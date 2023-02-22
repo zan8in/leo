@@ -8,7 +8,7 @@ import (
 	"github.com/zan8in/goflags"
 	"github.com/zan8in/gologger"
 	"github.com/zan8in/gologger/levels"
-	"github.com/zan8in/leo/pkg/utils"
+	"github.com/zan8in/leo/pkg/utils/fileutil"
 	"github.com/zan8in/leo/pkg/utils/iputil"
 )
 
@@ -176,7 +176,7 @@ func (options *Options) validateOptions() error {
 		}
 
 	} else if len(options.HostFile) > 0 {
-		hostlist, err := utils.ReadFileLineByLine(options.HostFile)
+		hostlist, err := fileutil.ReadFileLineByLine(options.HostFile)
 		if err != nil {
 			return ErrNoTargetOrHost
 		}
@@ -245,7 +245,7 @@ func (options *Options) convertUsers() {
 		}
 	}
 	if len(options.UserFile) > 0 {
-		userlist, err := utils.ReadFileLineByLine(options.UserFile)
+		userlist, err := fileutil.ReadFileLineByLine(options.UserFile)
 		if err != nil {
 			return
 		}
@@ -262,7 +262,7 @@ func (options *Options) convertPasswords() {
 		}
 	}
 	if len(options.PasswordFile) > 0 {
-		passlist, err := utils.ReadFileLineByLine(options.PasswordFile)
+		passlist, err := fileutil.ReadFileLineByLine(options.PasswordFile)
 		if err != nil {
 			return
 		}

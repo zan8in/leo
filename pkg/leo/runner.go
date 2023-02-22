@@ -11,7 +11,8 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/zan8in/gologger"
-	"github.com/zan8in/leo/pkg/utils"
+	"github.com/zan8in/leo/pkg/utils/dateutil"
+	"github.com/zan8in/leo/pkg/utils/fileutil"
 )
 
 var Ticker *time.Ticker
@@ -21,7 +22,7 @@ type Runner struct {
 	execute      *Execute
 	callbackchan chan *CallbackInfo
 
-	syncfile *utils.Syncfile
+	syncfile *fileutil.Syncfile
 }
 
 type HostCredentials struct {
@@ -46,7 +47,7 @@ func NewRunner(options *Options) (*Runner, error) {
 	runner := &Runner{
 		options:      options,
 		callbackchan: make(chan *CallbackInfo),
-		syncfile:     &utils.Syncfile{},
+		syncfile:     &fileutil.Syncfile{},
 	}
 
 	defaultPort := DefaultServicePort[options.Service]
@@ -82,7 +83,7 @@ func NewRunner(options *Options) (*Runner, error) {
 	runner.execute = NewExecute(options)
 
 	if len(options.Output) > 0 {
-		runner.syncfile, err = utils.NewSyncfile(options.Output)
+		runner.syncfile, err = fileutil.NewSyncfile(options.Output)
 		if err != nil {
 			return runner, err
 		}
@@ -139,7 +140,13 @@ func (runner *Runner) Run() {
 				for _, username := range runner.options.Users {
 					for _, password := range runner.options.Passwords {
 						wg.Add(1)
-						p.Invoke(&HostCredentials{Host: host.Host, Port: host.Port, User: username, Pass: handlePassword(username, password), M: m})
+						p.Invoke(&HostCredentials{
+							Host: host.Host,
+							Port: host.Port,
+							User: username,
+							Pass: handlePassword(username, password),
+							M:    m,
+						})
 					}
 				}
 			}(host)
@@ -176,7 +183,8 @@ func (runner *Runner) Listener() {
 	starttime := time.Now()
 
 	for result := range runner.callbackchan {
-		port, service, host, user, pass := result.HostInfo.Port, runner.options.Service, result.HostInfo.Host, result.HostCredentials.User, result.HostCredentials.Pass
+		port, service, host := result.HostInfo.Port, runner.options.Service, result.HostInfo.Host
+		user, pass := result.HostCredentials.User, result.HostCredentials.Pass
 
 		if result.Err == nil && result.Status != STATUS_COMPLATE {
 			info := fmt.Sprintf("\r[%s][%s] %s %s %s\r\n", port, service, host, user, pass)
@@ -201,8 +209,12 @@ func (runner *Runner) Listener() {
 			gologger.Error().Msgf("\r[%s][%s] %s, Connection failed, %s\r\n", port, service, host, result.Err.Error())
 		}
 		if !runner.options.Silent {
-			fmt.Printf("\r%d/%d/%d%%/%s", result.CurrentCount, runner.options.Count, result.CurrentCount*100/runner.options.Count,
-				strings.Split(time.Since(starttime).String(), ".")[0]+"s")
+			fmt.Printf("\r%d/%d/%d%%/%s",
+				result.CurrentCount,
+				runner.options.Count,
+				result.CurrentCount*100/runner.options.Count,
+				strings.Split(time.Since(starttime).String(), ".")[0]+"s",
+			)
 		}
 	}
 
@@ -211,15 +223,9 @@ func (runner *Runner) Listener() {
 		len(runner.options.Hosts), len(runner.options.Hosts), len(runner.options.SuccessList))
 
 	if len(runner.options.SuccessList) > 0 && len(runner.options.Output) > 0 {
-		// for _, info := range runner.options.SuccessList {
-		// 	err := utils.WriteString(runner.options.Output, info+"\r\n")
-		// 	if err != nil {
-		// 		gologger.Fatal().Msgf("write file failed, %s\r\n", err.Error())
-		// 	}
-		// }
 		gologger.Print().Msgf("write found login/password pairs to FILE: %s", runner.options.Output)
 	}
 
-	gologger.Print().Msgf("Leo finished at %s\r\n", utils.GetNowDateTime())
+	gologger.Print().Msgf("Leo finished at %s\r\n", dateutil.GetNowDateTime())
 
 }
