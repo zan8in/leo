@@ -28,17 +28,17 @@ func (e *Execute) start(host, username, password string, m any) error {
 	return nil
 }
 
-func (e *Execute) validateService(host string) (any, error) {
+func (e *Execute) validateService(host, port string) (any, error) {
 	service := e.options.Service
 	if service == SSH_NAME {
-		m, err := ssh.New(host, e.options.Port, e.options.Retries, e.options.Timeout)
+		m, err := ssh.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}
 		return m, nil
 	}
 	if service == MYSQL_NAME {
-		m, err := mysql.New(host, e.options.Port, e.options.Retries, e.options.Timeout)
+		m, err := mysql.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

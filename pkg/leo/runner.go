@@ -24,20 +24,20 @@ type Runner struct {
 	syncfile *utils.Syncfile
 }
 
-type TargetInfo struct {
-	host     string
-	username string
-	password string
-	m        any
+type HostCredentials struct {
+	Host string
+	Port string
+	User string
+	Pass string
+	M    any
 }
 
 type CallbackInfo struct {
-	Host         string
-	Username     string
-	Password     string
-	Err          error
-	CurrentCount uint32
-	Status       int
+	HostInfo        HostInfo
+	HostCredentials HostCredentials
+	Err             error
+	CurrentCount    uint32
+	Status          int
 }
 
 func NewRunner(options *Options) (*Runner, error) {
@@ -100,12 +100,17 @@ func (runner *Runner) Run() {
 			defer wg.Done()
 			<-Ticker.C
 
-			ti := p.(*TargetInfo)
+			hc := p.(*HostCredentials)
 
-			err := runner.execute.start(ti.host, ti.username, ti.password, ti.m)
+			err := runner.execute.start(hc.Host, hc.User, hc.Pass, hc.M)
 
 			atomic.AddUint32(&runner.options.CurrentCount, 1)
-			runner.callbackchan <- &CallbackInfo{Err: err, Host: ti.host, Username: ti.username, Password: ti.password, CurrentCount: runner.options.CurrentCount}
+			runner.callbackchan <- &CallbackInfo{
+				Err:             err,
+				HostInfo:        HostInfo{Host: hc.Host, Port: hc.Port},
+				HostCredentials: *hc,
+				CurrentCount:    runner.options.CurrentCount,
+			}
 		})
 		defer p.Release()
 
@@ -113,14 +118,20 @@ func (runner *Runner) Run() {
 		for _, host := range runner.options.Hosts {
 
 			swg.Add()
-			go func(host string) {
+			go func(host HostInfo) {
 				defer swg.Done()
 
-				m, err := runner.execute.validateService(host)
+				m, err := runner.execute.validateService(host.Host, host.Port)
 				if err != nil {
 
 					atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
-					runner.callbackchan <- &CallbackInfo{Err: err, Host: host, Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_FAILED}
+					runner.callbackchan <- &CallbackInfo{
+						Err:             err,
+						HostInfo:        host,
+						HostCredentials: HostCredentials{},
+						CurrentCount:    runner.options.CurrentCount,
+						Status:          STATUS_FAILED,
+					}
 
 					return
 				}
@@ -128,7 +139,7 @@ func (runner *Runner) Run() {
 				for _, username := range runner.options.Users {
 					for _, password := range runner.options.Passwords {
 						wg.Add(1)
-						p.Invoke(&TargetInfo{host: host, username: username, password: handlePassword(username, password), m: m})
+						p.Invoke(&HostCredentials{Host: host.Host, Port: host.Port, User: username, Pass: handlePassword(username, password), M: m})
 					}
 				}
 			}(host)
@@ -137,7 +148,14 @@ func (runner *Runner) Run() {
 
 		wg.Wait()
 
-		runner.callbackchan <- &CallbackInfo{Err: nil, Host: "", Username: "", Password: "", CurrentCount: runner.options.CurrentCount, Status: STATUS_COMPLATE}
+		runner.callbackchan <- &CallbackInfo{
+			Err:             nil,
+			HostInfo:        HostInfo{},
+			HostCredentials: HostCredentials{},
+			CurrentCount:    runner.options.CurrentCount,
+			Status:          STATUS_COMPLATE,
+		}
+
 	}()
 }
 
@@ -158,7 +176,7 @@ func (runner *Runner) Listener() {
 	starttime := time.Now()
 
 	for result := range runner.callbackchan {
-		port, service, host, user, pass := runner.options.Port, runner.options.Service, result.Host, result.Username, result.Password
+		port, service, host, user, pass := result.HostInfo.Port, runner.options.Service, result.HostInfo.Host, result.HostCredentials.User, result.HostCredentials.Pass
 
 		if result.Err == nil && result.Status != STATUS_COMPLATE {
 			info := fmt.Sprintf("\r[%s][%s] %s %s %s\r\n", port, service, host, user, pass)

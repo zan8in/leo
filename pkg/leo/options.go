@@ -1,12 +1,15 @@
 package leo
 
 import (
+	"errors"
+	"net"
 	"strings"
 
 	"github.com/zan8in/goflags"
 	"github.com/zan8in/gologger"
 	"github.com/zan8in/gologger/levels"
 	"github.com/zan8in/leo/pkg/utils"
+	"github.com/zan8in/leo/pkg/utils/iputil"
 )
 
 type Options struct {
@@ -58,7 +61,7 @@ type Options struct {
 	// write found login/password pairs to FILE instead of stdout
 	Output string
 
-	Hosts     []string
+	Hosts     []HostInfo
 	Users     []string
 	Passwords []string
 
@@ -66,6 +69,12 @@ type Options struct {
 	CurrentCount uint32
 
 	SuccessList []string
+}
+
+type HostInfo struct {
+	Host    string
+	Port    string
+	Service string
 }
 
 func ParseOptions() *Options {
@@ -132,38 +141,7 @@ func (options *Options) validateOptions() error {
 			return ErrTargetFormat
 		}
 
-		options.Service = strings.TrimSpace(targetService[0])
-
-		defaultPort := DefaultServicePort[options.Service]
-		if len(defaultPort.Port) == 0 {
-			return ErrNoService
-		}
-
-		targetPort := strings.Split(targetService[1], ":")
-		if len(targetPort) > 2 {
-			return ErrTargetFormat
-		}
-
-		options.Host = strings.TrimSpace(targetPort[0])
-		options.Hosts = append(options.Hosts, options.Host)
-
-		if len(targetPort) == 1 {
-			options.Port = defaultPort.Port
-		}
-
-		if len(targetPort) == 2 {
-			port := strings.TrimSpace(targetPort[1])
-			if !utils.IsNumeric(port) {
-				return ErrTargetFormat
-			}
-			options.Port = port
-		}
-
-	} else if len(options.Service) == 0 {
-		return ErrNoService
-
-	} else if len(options.Host) > 0 {
-		options.Hosts = append(options.Hosts, options.Host)
+		options.Service = strings.ToLower(strings.TrimSpace(targetService[0]))
 
 		defaultPort := DefaultServicePort[options.Service]
 		if len(defaultPort.Port) == 0 {
@@ -172,6 +150,29 @@ func (options *Options) validateOptions() error {
 
 		if len(options.Port) == 0 {
 			options.Port = defaultPort.Port
+		}
+
+		if err := options.handleHost(targetService[1]); err != nil {
+			return err
+		}
+
+	} else if len(options.Service) == 0 {
+		return ErrNoService
+
+	} else if len(options.Host) > 0 {
+		options.Service = strings.ToLower(strings.TrimSpace(options.Service))
+
+		defaultPort := DefaultServicePort[options.Service]
+		if len(defaultPort.Port) == 0 {
+			return ErrNoService
+		}
+
+		if len(options.Port) == 0 {
+			options.Port = defaultPort.Port
+		}
+
+		if err := options.handleHost(options.Host); err != nil {
+			return err
 		}
 
 	} else if len(options.HostFile) > 0 {
@@ -189,22 +190,47 @@ func (options *Options) validateOptions() error {
 			options.Port = defaultPort.Port
 		}
 
+		if len(hostlist) == 0 {
+			return ErrNoTargetOrHost
+		}
+
 		for _, host := range hostlist {
-			if len(strings.TrimSpace(host)) == 0 {
+			if options.handleHost(host) != nil {
 				continue
 			}
-			hlist := strings.Split(host, ":")
-			if len(hlist) > 0 {
-				host = hlist[0]
-			}
-			options.Hosts = append(options.Hosts, strings.TrimSpace(host))
 		}
+
 	} else {
 		return ErrNoOther
 	}
 
 	if options.Debug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+	}
+
+	return nil
+}
+
+func (options *Options) handleHost(host string) error {
+	splitHost := strings.Split(host, ":")
+	if len(splitHost) > 2 {
+		return errors.New(host + " format error")
+	}
+
+	if len(splitHost) == 1 {
+		options.Hosts = append(options.Hosts, HostInfo{Host: host, Port: options.Port, Service: options.Service})
+	}
+
+	if len(splitHost) == 2 {
+		ip, port, err := net.SplitHostPort(host)
+		if err != nil {
+			return err
+		}
+		isPort := iputil.IsPort(port)
+		if !isPort {
+			return errors.New(host + " format error, " + splitHost[1] + " is not port")
+		}
+		options.Hosts = append(options.Hosts, HostInfo{Host: ip, Port: port, Service: options.Service})
 	}
 
 	return nil
@@ -246,7 +272,7 @@ func (options *Options) convertPasswords() {
 
 func (options *Options) showBanner() {
 	if len(options.Target) > 0 {
-		gologger.Info().Msgf("Target: %s", options.Target)
+		gologger.Info().Msgf("Target: %s", strings.ToLower(options.Target))
 	}
 
 	if len(options.Service) > 0 {
