@@ -8,6 +8,7 @@ import (
 	"github.com/zan8in/goflags"
 	"github.com/zan8in/gologger"
 	"github.com/zan8in/gologger/levels"
+	"github.com/zan8in/leo/pkg/utils/dateutil"
 	"github.com/zan8in/leo/pkg/utils/fileutil"
 	"github.com/zan8in/leo/pkg/utils/iputil"
 )
@@ -69,6 +70,7 @@ type Options struct {
 	CurrentCount uint32
 
 	SuccessList []string
+	FailedMap   map[string]int
 }
 
 type HostInfo struct {
@@ -81,7 +83,12 @@ func ParseOptions() *Options {
 
 	ShowBanner()
 
-	options := &Options{Count: 0, CurrentCount: 0, SuccessList: []string{}}
+	options := &Options{
+		Count:        0,
+		CurrentCount: 0,
+		SuccessList:  []string{},
+		FailedMap:    map[string]int{},
+	}
 
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`Leo`)
@@ -196,6 +203,7 @@ func (options *Options) validateOptions() error {
 
 		for _, host := range hostlist {
 			if options.handleHost(host) != nil {
+				options.FailedMap[host] = 1
 				continue
 			}
 		}
@@ -271,39 +279,8 @@ func (options *Options) convertPasswords() {
 }
 
 func (options *Options) showBanner() {
-	if len(options.Target) > 0 {
-		gologger.Info().Msgf("Target: %s", strings.ToLower(options.Target))
-	}
-
-	if len(options.Service) > 0 {
-		gologger.Info().Msgf("Service: %s", options.Service)
-	}
-
-	if len(options.Host) > 0 {
-		gologger.Info().Msgf("Host: %s", options.Host)
-	}
-
-	if len(options.HostFile) > 0 {
-		gologger.Info().Msgf("Host File: %s", options.HostFile)
-	}
-
-	if len(options.Port) > 0 {
-		gologger.Info().Msgf("Port: %s", options.Port)
-	}
-
-	if len(options.User) > 0 {
-		gologger.Info().Msgf("User: %s", options.User)
-	}
-
-	if len(options.UserFile) > 0 {
-		gologger.Info().Msgf("User File: %s", options.UserFile)
-	}
-
-	if len(options.Password) > 0 {
-		gologger.Info().Msgf("Password: %s", options.Password)
-	}
-
-	if len(options.PasswordFile) > 0 {
-		gologger.Info().Msgf("Password File: %s", options.PasswordFile)
-	}
+	gologger.Print().Msgf("Cracking login credentials on [%s] protocol network. Start time %s",
+		options.Service,
+		dateutil.GetNowFullDateTime(),
+	)
 }

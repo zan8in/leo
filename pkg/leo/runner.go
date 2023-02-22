@@ -133,6 +133,7 @@ func (runner *Runner) Run() {
 						CurrentCount:    runner.options.CurrentCount,
 						Status:          STATUS_FAILED,
 					}
+					runner.options.FailedMap[host.Host] = 1
 
 					return
 				}
@@ -187,16 +188,16 @@ func (runner *Runner) Listener() {
 		user, pass := result.HostCredentials.User, result.HostCredentials.Pass
 
 		if result.Err == nil && result.Status != STATUS_COMPLATE {
-			info := fmt.Sprintf("\r[%s][%s] %s %s %s\r\n", port, service, host, user, pass)
+			info := fmt.Sprintf("\r%s [%s][%s] %s %s %s\r\n", dateutil.GetNowDateTime(), port, service, host, user, pass)
 
 			gologger.Print().Msgf(info)
 
-			if len(runner.options.Output) > 0 {
-				go func() {
+			go func(info string) {
+				if len(runner.options.Output) > 0 {
 					runner.syncfile.Write(strings.TrimSpace(info) + "\n")
-					runner.options.SuccessList = append(runner.options.SuccessList, strings.TrimSpace(info))
-				}()
-			}
+				}
+				runner.options.SuccessList = append(runner.options.SuccessList, strings.TrimSpace(info))
+			}(info)
 		}
 		if result.Err == nil && result.Status == STATUS_COMPLATE {
 			time.Sleep(3 * time.Second)
@@ -218,14 +219,20 @@ func (runner *Runner) Listener() {
 		}
 	}
 
-	gologger.Print().Msgf("")
-	gologger.Print().Msgf("%d of %d target successfully completed, %d valid password found\r\n",
-		len(runner.options.Hosts), len(runner.options.Hosts), len(runner.options.SuccessList))
+	gologger.Print().Msg("")
+	gologger.Print().Msgf("\n%d valid password found. Leo finished at %s\n", len(runner.options.SuccessList), dateutil.GetNowFullDateTime())
 
-	if len(runner.options.SuccessList) > 0 && len(runner.options.Output) > 0 {
-		gologger.Print().Msgf("write found login/password pairs to FILE: %s", runner.options.Output)
+	if len(runner.options.FailedMap) > 0 {
+		gologger.Print().Msgf("%d error target found:\n",
+			len(runner.options.FailedMap),
+		)
+		for host, _ := range runner.options.FailedMap {
+			gologger.Print().Msgf(" - %s\n", host)
+		}
 	}
 
-	gologger.Print().Msgf("Leo finished at %s\r\n", dateutil.GetNowDateTime())
+	if len(runner.options.SuccessList) > 0 && len(runner.options.Output) > 0 {
+		gologger.Print().Msgf("write found login/password pairs to file: %s", runner.options.Output)
+	}
 
 }
