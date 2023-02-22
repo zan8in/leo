@@ -1,4 +1,4 @@
-package upgrade
+package leo
 
 import (
 	"fmt"
@@ -10,10 +10,9 @@ import (
 	"github.com/tj/go-update/progress"
 	githubUpdateStore "github.com/tj/go-update/stores/github"
 	"github.com/zan8in/gologger"
-	"github.com/zan8in/leo/pkg/leo"
 )
 
-func UpdateAfrogVersionToLatest(verbose bool) error {
+func UpdateVersionToLatest(verbose bool) error {
 	var command string
 	switch runtime.GOOS {
 	case "windows":
@@ -26,7 +25,7 @@ func UpdateAfrogVersionToLatest(verbose bool) error {
 		Store: &githubUpdateStore.Store{
 			Owner:   "zan8in",
 			Repo:    "leo",
-			Version: leo.Version,
+			Version: Version,
 		},
 	}
 	releases, err := m.LatestReleases()
@@ -34,7 +33,7 @@ func UpdateAfrogVersionToLatest(verbose bool) error {
 		return errors.Wrap(err, "could not fetch latest release")
 	}
 	if len(releases) == 0 {
-		gologger.Info().Msgf("No new updates found for afrog engine!")
+		gologger.Info().Msgf("No new updates found for Leo engine!")
 		return nil
 	}
 
@@ -50,7 +49,6 @@ func UpdateAfrogVersionToLatest(verbose bool) error {
 	if final == nil {
 		return fmt.Errorf("no compatible binary found for %s/%s", currentOS, runtime.GOARCH)
 	}
-	//https: //gitee.com/zanbin/afrog/releases/download/v2.0.1/afrog_windows_amd64.zip
 	final.URL = strings.Replace(final.URL, "github.com/zan8in", "gitee.com/zanbin", -1)
 	tarball, err := final.DownloadProxy(progress.Reader)
 	if err != nil {
@@ -59,6 +57,6 @@ func UpdateAfrogVersionToLatest(verbose bool) error {
 	if err := m.Install(tarball); err != nil {
 		return errors.Wrap(err, "could not install latest release")
 	}
-	gologger.Info().Msgf("Successfully updated to afrog %s\n", latest.Version)
+	gologger.Info().Msgf("Successfully updated to Leo %s\n", latest.Version)
 	return nil
 }

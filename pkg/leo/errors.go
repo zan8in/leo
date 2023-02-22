@@ -11,5 +11,5 @@ var (
 	ErrNoUsers        = errors.New("no input usernames provided")
 	ErrNoPasses       = errors.New("no input passwords provided")
 
-	ErrNoOther = errors.New("error")
+	ErrNoOther = errors.New("other error")
 )

@@ -45,5 +45,5 @@ func (e *Execute) validateService(host, port string) (any, error) {
 		return m, nil
 	}
 
-	return nil, errors.New("error")
+	return nil, errors.New("validdate service failed.")
 }

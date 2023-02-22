@@ -14,63 +14,57 @@ import (
 )
 
 type Options struct {
-	// -t ssh://192.168.88.168:22
+	// target 'protocol://host:port' to crack
 	Target string
-
-	// -h 127.0.0.1 or 127.0.0.1,192.168.1.1,192.168.1.2
+	// host to crack logon
 	Host string
-	// -H hosts.txt
+	// path to file containing a list of target hosts to crack(one per line)
 	HostFile string
-
-	// -port
+	// ports to crack
 	Port string
-
-	// -s  ssh
+	// crack supports the protocols: ssh,ftp,mssql
 	Service string
-
-	// -l root or root,admin,test
+	// login with LOGIN name for (comma-separated)
 	User string
-	// -p 123456  or  123456,123,111
+	// try password PASS for (comma-separated)
 	Password string
-
-	// -L username.txt
+	// load several logins from FILE
 	UserFile string
-	// -P password.txt
+	// load several passwords from FILE
 	PasswordFile string
-
-	// no progress if silent is true
+	// disable progress bar
 	Silent bool
-
-	// no progress if silent is true
+	// update Leo engine to the latest released version
 	Update bool
-
-	// -t Timeout
+	// time to wait in seconds before timeout
 	Timeout int
-
-	// number of times to retry a failed request (default 1)
+	// number of times to retry a failed request
 	Retries int
-
-	// -d DEBUG
+	// show all crack log
 	Debug bool
-
-	// maximum number of requests to send per second (default 150)
+	// maximum number of requests to send per second (150)
 	RateLimit int
-
-	// maximum number of afrog-pocs to be executed in parallel (default 25)
+	// maximum number of crack to be executed in parallel (25)
 	Concurrency int
-
-	// write found login/password pairs to FILE instead of stdout
+	// write found login/password pairs to FILE
 	Output string
 
-	Hosts     []HostInfo
-	Users     []string
+	// Crack credential host information including host, port number and protocol
+	Hosts []HostInfo
+	// Crack login account credentials
+	Users []string
+	// Cracking Login Password Credentials
 	Passwords []string
 
-	Count        uint32
+	// Crack the maximum total number of requests
+	Count uint32
+	// Crack the current number of requests
 	CurrentCount uint32
 
+	// List of successfully cracked results
 	SuccessList []string
-	FailedMap   map[string]int
+	// List of hosts that failed to crack
+	FailedMap map[string]int
 }
 
 type HostInfo struct {
@@ -94,41 +88,49 @@ func ParseOptions() *Options {
 	flagSet.SetDescription(`Leo`)
 
 	flagSet.CreateGroup("target", "target",
-		flagSet.StringVarP(&options.Target, "t", "", "", "-t ssh://192.168.66.100:22"),
-		flagSet.StringVarP(&options.Host, "h", "", "", "-h 192.168.66.100"),
-		flagSet.StringVarP(&options.HostFile, "H", "", "", "-H hostlist.txt"),
-		flagSet.StringVarP(&options.Service, "s", "", "", "supports the protocols: ssh,ftp,mssql"),
-		flagSet.StringVarP(&options.Port, "port", "", "", "-port 22"),
+		flagSet.StringVarP(&options.Target, "t", "", "", "target 'protocol://host:port' to crack"),
+		flagSet.StringVarP(&options.Host, "h", "", "", "host to crack logon"),
+		flagSet.StringVarP(&options.HostFile, "H", "", "", "path to file containing a list of target hosts to crack(one per line)"),
+		flagSet.StringVarP(&options.Service, "s", "", "", "crack supports the protocols: ssh,ftp,mssql"),
+		flagSet.StringVarP(&options.Port, "port", "", "", "ports to crack"),
 	)
 
 	flagSet.CreateGroup("credentials", "credentials",
-		flagSet.StringVarP(&options.User, "l", "", "", "login with LOGIN name"),
-		flagSet.StringVarP(&options.Password, "p", "", "", "try password PASS"),
+		flagSet.StringVarP(&options.User, "l", "", "", "login with LOGIN name for (comma-separated)"),
+		flagSet.StringVarP(&options.Password, "p", "", "", "try password PASS for (comma-separated)"),
 		flagSet.StringVarP(&options.UserFile, "L", "", "", "load several logins from FILE"),
 		flagSet.StringVarP(&options.PasswordFile, "P", "", "", "load several passwords from FILE"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum number of requests to send per second"),
-		flagSet.IntVarP(&options.Concurrency, "concurrency", "c", 25, "maximum number of afrog-pocs to be executed in parallel"),
+		flagSet.IntVarP(&options.Concurrency, "concurrency", "c", 25, "maximum number of crack to be executed in parallel"),
 	)
 
 	flagSet.CreateGroup("optimization", "Optimizations",
-		flagSet.IntVar(&options.Retries, "retries", 10, "number of times to retry a failed request"),
+		flagSet.IntVar(&options.Retries, "retries", 2, "number of times to retry a failed request"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "time to wait in seconds before timeout"),
-		flagSet.BoolVar(&options.Silent, "silent", false, "no progress, only results"),
+		flagSet.BoolVar(&options.Silent, "silent", false, "disable progress bar"),
 		flagSet.StringVarP(&options.Output, "o", "", "", "write found login/password pairs to FILE"),
 	)
 
 	flagSet.CreateGroup("update", "Update",
-		flagSet.BoolVar(&options.Update, "update", false, "update leo engine to the latest released version"),
+		flagSet.BoolVar(&options.Update, "update", false, "update Leo engine to the latest released version"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
-		flagSet.BoolVar(&options.Debug, "debug", false, ""),
+		flagSet.BoolVar(&options.Debug, "debug", false, "show all crack log"),
 	)
 
 	_ = flagSet.Parse()
+
+	if options.Update {
+		err := UpdateVersionToLatest(true)
+		if err != nil {
+			gologger.Fatal().Msg("Failed update Leo engine to the latest released version")
+		}
+		return nil
+	}
 
 	err := options.validateOptions()
 	if err != nil {

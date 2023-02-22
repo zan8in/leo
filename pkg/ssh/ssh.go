@@ -100,7 +100,6 @@ func (s *SSH) authSSH(host, username, password string) error {
 	}
 
 	if len(output) > 0 {
-		// fmt.Println(s.host + ":" + s.port + ":" + username + ":" + password + "===================================================" + string(output))
 		return nil
 	}
 
