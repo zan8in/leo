@@ -1,0 +1,6 @@
+anonymous
+ftp
+administrator
+test
+admin
+web
