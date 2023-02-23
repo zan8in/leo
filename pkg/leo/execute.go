@@ -6,6 +6,7 @@ import (
 	"github.com/zan8in/leo/pkg/ftp"
 	"github.com/zan8in/leo/pkg/mssql"
 	"github.com/zan8in/leo/pkg/mysql"
+	"github.com/zan8in/leo/pkg/postgres"
 	"github.com/zan8in/leo/pkg/ssh"
 )
 
@@ -29,6 +30,10 @@ func (e *Execute) start(host, username, password string, m any) error {
 	}
 	if service == MSSQL_NAME {
 		client := m.(*mssql.MSSQL)
+		return client.AuthRetries(username, password)
+	}
+	if service == POSTGRES_NAME {
+		client := m.(*postgres.POSTGRES)
 		return client.AuthRetries(username, password)
 	}
 	if service == FTP_NAME {
@@ -56,6 +61,13 @@ func (e *Execute) validateService(host, port string) (any, error) {
 	}
 	if service == MSSQL_NAME {
 		m, err := mssql.New(host, port, e.options.Retries, e.options.Timeout)
+		if err != nil {
+			return m, err
+		}
+		return m, nil
+	}
+	if service == POSTGRES_NAME {
+		m, err := postgres.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

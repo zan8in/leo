@@ -26,6 +26,11 @@ const (
 	MSSQL_USER_DICS = "dics/mssql_user.txt"
 	MSSQL_PWDS_DICS = "dics/mssql_pass.txt"
 
+	POSTGRES_NAME      = "postgres"
+	POSTGRES_PORT      = "5432"
+	POSTGRES_USER_DICS = "dics/postgres_user.txt"
+	POSTGRES_PWDS_DICS = "dics/postgres_pass.txt"
+
 	FTP_NAME      = "ftp"
 	FTP_PORT      = "21"
 	FTP_USER_DICS = "dics/ftp_user.txt"
@@ -59,6 +64,11 @@ var DefaultServicePort = map[string]DefaultService{
 		Port:      MSSQL_PORT,
 		Users:     getDicsFromPath(MSSQL_USER_DICS),
 		Passwords: getDicsFromPath(MSSQL_PWDS_DICS),
+	},
+	POSTGRES_NAME: {
+		Port:      POSTGRES_PORT,
+		Users:     getDicsFromPath(POSTGRES_USER_DICS),
+		Passwords: getDicsFromPath(POSTGRES_PWDS_DICS),
 	},
 	FTP_NAME: {
 		Port:      FTP_PORT,
