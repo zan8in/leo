@@ -7,6 +7,7 @@ import (
 	"github.com/zan8in/leo/pkg/mssql"
 	"github.com/zan8in/leo/pkg/mysql"
 	"github.com/zan8in/leo/pkg/postgres"
+	"github.com/zan8in/leo/pkg/redis"
 	"github.com/zan8in/leo/pkg/ssh"
 )
 
@@ -38,6 +39,10 @@ func (e *Execute) start(host, username, password string, m any) error {
 	}
 	if service == FTP_NAME {
 		client := m.(*ftp.FTP)
+		return client.AuthRetries(username, password)
+	}
+	if service == REDIS_NAME {
+		client := m.(*redis.REDIS)
 		return client.AuthRetries(username, password)
 	}
 	return nil
@@ -75,6 +80,13 @@ func (e *Execute) validateService(host, port string) (any, error) {
 	}
 	if service == FTP_NAME {
 		m, err := ftp.New(host, port, e.options.Retries, e.options.Timeout)
+		if err != nil {
+			return m, err
+		}
+		return m, nil
+	}
+	if service == REDIS_NAME {
+		m, err := redis.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

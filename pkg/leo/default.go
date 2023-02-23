@@ -31,6 +31,11 @@ const (
 	POSTGRES_USER_DICS = "dics/postgres_user.txt"
 	POSTGRES_PWDS_DICS = "dics/postgres_pass.txt"
 
+	REDIS_NAME      = "redis"
+	REDIS_PORT      = "6379"
+	REDIS_USER_DICS = "dics/redis_user.txt"
+	REDIS_PWDS_DICS = "dics/redis_pass.txt"
+
 	FTP_NAME      = "ftp"
 	FTP_PORT      = "21"
 	FTP_USER_DICS = "dics/ftp_user.txt"
@@ -69,6 +74,11 @@ var DefaultServicePort = map[string]DefaultService{
 		Port:      POSTGRES_PORT,
 		Users:     getDicsFromPath(POSTGRES_USER_DICS),
 		Passwords: getDicsFromPath(POSTGRES_PWDS_DICS),
+	},
+	REDIS_NAME: {
+		Port:      REDIS_PORT,
+		Users:     getDicsFromPath(REDIS_USER_DICS),
+		Passwords: getDicsFromPath(REDIS_PWDS_DICS),
 	},
 	FTP_NAME: {
 		Port:      FTP_PORT,
