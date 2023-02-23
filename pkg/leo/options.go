@@ -104,7 +104,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum number of requests to send per second"),
-		flagSet.IntVarP(&options.Concurrency, "concurrency", "c", 25, "maximum number of crack to be executed in parallel"),
+		flagSet.IntVarP(&options.Concurrency, "concurrency", "c", 100, "maximum number of crack to be executed in parallel"),
 	)
 
 	flagSet.CreateGroup("optimization", "Optimizations",

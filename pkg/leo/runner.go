@@ -1,6 +1,7 @@
 package leo
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -23,6 +24,8 @@ type Runner struct {
 	callbackchan chan *CallbackInfo
 
 	syncfile *fileutil.Syncfile
+
+	successmap *sync.Map
 }
 
 type HostCredentials struct {
@@ -48,6 +51,7 @@ func NewRunner(options *Options) (*Runner, error) {
 		options:      options,
 		callbackchan: make(chan *CallbackInfo),
 		syncfile:     &fileutil.Syncfile{},
+		successmap:   &sync.Map{},
 	}
 
 	defaultPort := DefaultServicePort[options.Service]
@@ -94,6 +98,8 @@ func NewRunner(options *Options) (*Runner, error) {
 
 func (runner *Runner) Run() {
 	go func() {
+		// defer ants.Release()
+
 		Ticker = time.NewTicker(time.Second / time.Duration(runner.options.RateLimit))
 		var wg sync.WaitGroup
 
@@ -103,15 +109,27 @@ func (runner *Runner) Run() {
 
 			hc := p.(*HostCredentials)
 
-			err := runner.execute.start(hc.Host, hc.User, hc.Pass, hc.M)
-
 			atomic.AddUint32(&runner.options.CurrentCount, 1)
-			runner.callbackchan <- &CallbackInfo{
-				Err:             err,
-				HostInfo:        HostInfo{Host: hc.Host, Port: hc.Port},
-				HostCredentials: *hc,
-				CurrentCount:    runner.options.CurrentCount,
+
+			_, ok := runner.successmap.Load(fmt.Sprintf("%s:%s:%s", hc.Host, hc.Port, hc.User))
+			if !ok {
+				err := runner.execute.start(hc.Host, hc.User, hc.Pass, hc.M)
+
+				runner.callbackchan <- &CallbackInfo{
+					Err:             err,
+					HostInfo:        HostInfo{Host: hc.Host, Port: hc.Port},
+					HostCredentials: *hc,
+					CurrentCount:    runner.options.CurrentCount,
+				}
+			} else {
+				runner.callbackchan <- &CallbackInfo{
+					Err:             errors.New("successmap, skip crack"),
+					HostInfo:        HostInfo{Host: hc.Host, Port: hc.Port},
+					HostCredentials: *hc,
+					CurrentCount:    runner.options.CurrentCount,
+				}
 			}
+
 		})
 		defer p.Release()
 
@@ -121,7 +139,6 @@ func (runner *Runner) Run() {
 			swg.Add()
 			go func(host HostInfo) {
 				defer swg.Done()
-
 				m, err := runner.execute.validateService(host.Host, host.Port)
 				if err != nil {
 
@@ -198,6 +215,8 @@ func (runner *Runner) Listener() {
 				}
 				runner.options.SuccessList = append(runner.options.SuccessList, strings.TrimSpace(info))
 			}(info)
+
+			runner.successmap.Store(fmt.Sprintf("%s:%s:%s", host, port, user), fmt.Sprintf("%s:%s:%s", host, port, user))
 		}
 		if result.Err == nil && result.Status == STATUS_COMPLATE {
 			time.Sleep(3 * time.Second)
