@@ -45,6 +45,11 @@ const (
 	ORACLE_PORT      = "1521"
 	ORACLE_USER_DICS = "dics/oracle_user.txt"
 	ORACLE_PWDS_DICS = "dics/oracle_pass.txt"
+
+	MONGO_NAME      = "mongo"
+	MONGO_PORT      = "27017"
+	MONGO_USER_DICS = "dics/mongo_user.txt"
+	MONGO_PWDS_DICS = "dics/mongo_pass.txt"
 )
 
 const (
@@ -94,6 +99,11 @@ var DefaultServicePort = map[string]DefaultService{
 		Port:      ORACLE_PORT,
 		Users:     getDicsFromPath(ORACLE_USER_DICS),
 		Passwords: getDicsFromPath(ORACLE_PWDS_DICS),
+	},
+	MONGO_NAME: {
+		Port:      MONGO_PORT,
+		Users:     getDicsFromPath(MONGO_USER_DICS),
+		Passwords: getDicsFromPath(MONGO_PWDS_DICS),
 	},
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/zan8in/leo/pkg/ftp"
+	"github.com/zan8in/leo/pkg/mongo"
 	"github.com/zan8in/leo/pkg/mssql"
 	"github.com/zan8in/leo/pkg/mysql"
 	"github.com/zan8in/leo/pkg/oracle"
@@ -48,6 +49,10 @@ func (e *Execute) start(host, username, password string, m any) error {
 	}
 	if service == ORACLE_NAME {
 		client := m.(*oracle.ORACLE)
+		return client.AuthRetries(username, password)
+	}
+	if service == MONGO_NAME {
+		client := m.(*mongo.MONGO)
 		return client.AuthRetries(username, password)
 	}
 	return nil
@@ -99,6 +104,13 @@ func (e *Execute) validateService(host, port string) (any, error) {
 	}
 	if service == ORACLE_NAME {
 		m, err := oracle.New(host, port, e.options.Retries, e.options.Timeout)
+		if err != nil {
+			return m, err
+		}
+		return m, nil
+	}
+	if service == MONGO_NAME {
+		m, err := mongo.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

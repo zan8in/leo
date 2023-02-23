@@ -9,7 +9,7 @@ Leo is a network logon cracker which support many different services.
 - postgres
 - oracle
 - redis
-- mongodb(todo)
+- mongodb
 - telnet(todo)
 - vnc(todo)
 
