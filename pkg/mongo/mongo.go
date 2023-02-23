@@ -91,7 +91,7 @@ func (mongo *MONGO) auth(user, password string) error {
 	return err
 }
 
-func (mo *MONGO) authNoPass() error {
+func (mo *MONGO) AuthNoPass() error {
 	clientOptions := options.Client().ApplyURI("mongodb://" + mo.host + ":" + mo.port)
 
 	mgo, err := mongo.Connect(context.Background(), clientOptions)

@@ -58,64 +58,73 @@ func (e *Execute) start(host, username, password string, m any) error {
 	return nil
 }
 
-func (e *Execute) validateService(host, port string) (any, error) {
+func (e *Execute) validateService(host, port string) (any, string, error) {
+	var ret string
+
 	service := e.options.Service
 	if service == SSH_NAME {
 		m, err := ssh.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == MYSQL_NAME {
 		m, err := mysql.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == MSSQL_NAME {
 		m, err := mssql.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == POSTGRES_NAME {
 		m, err := postgres.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == FTP_NAME {
 		m, err := ftp.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == REDIS_NAME {
 		m, err := redis.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == ORACLE_NAME {
 		m, err := oracle.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+		return m, ret, nil
 	}
 	if service == MONGO_NAME {
 		m, err := mongo.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
-			return m, err
+			return m, ret, err
 		}
-		return m, nil
+
+		err = m.AuthNoPass()
+		ret = "mongo-unauthorized-visit"
+		if err == nil {
+			return m, ret, err
+		}
+
+		return m, ret, nil
 	}
 
-	return nil, errors.New("validdate service failed.")
+	return nil, ret, errors.New("validdate service failed.")
 }
