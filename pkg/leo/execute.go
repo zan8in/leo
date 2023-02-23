@@ -95,6 +95,19 @@ func (e *Execute) validateService(host, port string) (any, string, error) {
 		if err != nil {
 			return m, ret, err
 		}
+
+		err = m.AuthRetries("anonymous", "anonymous")
+		if err == nil {
+			ret = "anonymous"
+			return m, ret, err
+		}
+
+		err = m.AuthRetries("ftp", "ftp")
+		if err == nil {
+			ret = "ftp"
+			return m, ret, err
+		}
+
 		return m, ret, nil
 	}
 	if service == REDIS_NAME {
@@ -118,8 +131,8 @@ func (e *Execute) validateService(host, port string) (any, string, error) {
 		}
 
 		err = m.AuthNoPass()
-		ret = "mongo-unauthorized-visit"
 		if err == nil {
+			ret = "mongo-unauthorized-visit"
 			return m, ret, err
 		}
 

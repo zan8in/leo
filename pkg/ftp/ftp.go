@@ -18,7 +18,6 @@ type FTP struct {
 var (
 	ErrRtries        = errors.New("retries exceeded")
 	ErrNoHost        = errors.New("no input host provided")
-	ErrAnonymous     = errors.New("anonymous test, skip")
 	default_ftp_port = "21"
 
 	ErrLogin   = "Login incorrect"
@@ -48,9 +47,6 @@ func (f *FTP) AuthRetries(user, password string) (err error) {
 
 		err = f.auth(user, password)
 		if err != nil {
-			if err.Error() == ErrAnonymous.Error() {
-				return ErrAnonymous
-			}
 			if strings.Contains(err.Error(), Err500OOPS) {
 				return nil
 			}
@@ -66,14 +62,20 @@ func (f *FTP) AuthRetries(user, password string) (err error) {
 }
 
 func (f *FTP) auth(user, password string) (err error) {
-	if (strings.ToLower(user) == "anonymous" && password != "anonymous") ||
-		(strings.ToLower(user) == "ftp" && password != "ftp") {
-		return ErrAnonymous
-	}
 	conn, err := ftp.Dial(f.host+":"+f.port, ftp.DialWithTimeout(time.Duration(f.timeout)*time.Second))
 	if err != nil {
 		return err
 	}
 
-	return conn.Login(user, password)
+	err = conn.Login(user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.CurrentDir()
+	if err != nil {
+		return err
+	}
+
+	return err
 }

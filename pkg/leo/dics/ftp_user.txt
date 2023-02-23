@@ -1,5 +1,3 @@
-anonymous
-ftp
 administrator
 test
 admin

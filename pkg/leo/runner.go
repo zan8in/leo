@@ -141,6 +141,7 @@ func (runner *Runner) Run() {
 				defer swg.Done()
 				m, ret, err := runner.execute.validateService(host.Host, host.Port)
 				if len(ret) > 0 {
+					atomic.AddUint32(&runner.options.CurrentCount, uint32(len(runner.options.Users)*len(runner.options.Passwords)))
 					runner.callbackchan <- &CallbackInfo{
 						Err:      nil,
 						HostInfo: host,
@@ -152,6 +153,7 @@ func (runner *Runner) Run() {
 						},
 						CurrentCount: runner.options.CurrentCount,
 					}
+					return
 				}
 				if err != nil {
 
