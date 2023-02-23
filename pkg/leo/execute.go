@@ -115,6 +115,13 @@ func (e *Execute) validateService(host, port string) (any, string, error) {
 		if err != nil {
 			return m, ret, err
 		}
+
+		err = m.AuthRetries("", "")
+		if err == nil {
+			ret = "redis-unauthorized-visit"
+			return m, ret, err
+		}
+
 		return m, ret, nil
 	}
 	if service == ORACLE_NAME {

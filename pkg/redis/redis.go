@@ -70,5 +70,11 @@ func (r *REDIS) auth(user, password string) error {
 	}
 	defer conn.Close()
 
+	conn.Do("SET", "s1", "test")
+	_, err = redis.String(conn.Do("GET", "s1"))
+	if err != nil {
+		return err
+	}
+
 	return err
 }
