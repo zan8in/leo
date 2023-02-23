@@ -21,6 +21,11 @@ const (
 	MYSQL_USER_DICS = "dics/mysql_user.txt"
 	MYSQL_PWDS_DICS = "dics/mysql_pass.txt"
 
+	MSSQL_NAME      = "mssql"
+	MSSQL_PORT      = "3306"
+	MSSQL_USER_DICS = "dics/mssql_user.txt"
+	MSSQL_PWDS_DICS = "dics/mssql_pass.txt"
+
 	FTP_NAME      = "ftp"
 	FTP_PORT      = "21"
 	FTP_USER_DICS = "dics/ftp_user.txt"
@@ -49,6 +54,11 @@ var DefaultServicePort = map[string]DefaultService{
 		Port:      MYSQL_PORT,
 		Users:     getDicsFromPath(MYSQL_USER_DICS),
 		Passwords: getDicsFromPath(MYSQL_PWDS_DICS),
+	},
+	MSSQL_NAME: {
+		Port:      MSSQL_PORT,
+		Users:     getDicsFromPath(MSSQL_USER_DICS),
+		Passwords: getDicsFromPath(MSSQL_PWDS_DICS),
 	},
 	FTP_NAME: {
 		Port:      FTP_PORT,

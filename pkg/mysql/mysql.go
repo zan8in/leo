@@ -47,14 +47,13 @@ func (mysql *MYSQL) AuthRetries(user, password string) (err error) {
 		}
 
 		err = mysql.auth(user, password)
+		if err != nil && strings.Contains(err.Error(), ErrOldPassword) {
+			return nil
+		}
 		if err != nil {
 			sum++
 			time.Sleep(500 * time.Millisecond)
 			continue
-		}
-
-		if err != nil && strings.Contains(err.Error(), ErrOldPassword) {
-			return nil
 		}
 
 		return nil

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/zan8in/leo/pkg/ftp"
+	"github.com/zan8in/leo/pkg/mssql"
 	"github.com/zan8in/leo/pkg/mysql"
 	"github.com/zan8in/leo/pkg/ssh"
 )
@@ -26,6 +27,10 @@ func (e *Execute) start(host, username, password string, m any) error {
 		client := m.(*mysql.MYSQL)
 		return client.AuthRetries(username, password)
 	}
+	if service == MSSQL_NAME {
+		client := m.(*mssql.MSSQL)
+		return client.AuthRetries(username, password)
+	}
 	if service == FTP_NAME {
 		client := m.(*ftp.FTP)
 		return client.AuthRetries(username, password)
@@ -44,6 +49,13 @@ func (e *Execute) validateService(host, port string) (any, error) {
 	}
 	if service == MYSQL_NAME {
 		m, err := mysql.New(host, port, e.options.Retries, e.options.Timeout)
+		if err != nil {
+			return m, err
+		}
+		return m, nil
+	}
+	if service == MSSQL_NAME {
+		m, err := mssql.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

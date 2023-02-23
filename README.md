@@ -4,6 +4,7 @@ Leo is a network logon cracker which support many different services.
 # Supported Protocols
 - ssh
 - mysql
+- mssql
 - ftp
 
 # Usage
