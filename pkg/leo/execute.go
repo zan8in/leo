@@ -6,6 +6,7 @@ import (
 	"github.com/zan8in/leo/pkg/ftp"
 	"github.com/zan8in/leo/pkg/mssql"
 	"github.com/zan8in/leo/pkg/mysql"
+	"github.com/zan8in/leo/pkg/oracle"
 	"github.com/zan8in/leo/pkg/postgres"
 	"github.com/zan8in/leo/pkg/redis"
 	"github.com/zan8in/leo/pkg/ssh"
@@ -43,6 +44,10 @@ func (e *Execute) start(host, username, password string, m any) error {
 	}
 	if service == REDIS_NAME {
 		client := m.(*redis.REDIS)
+		return client.AuthRetries(username, password)
+	}
+	if service == ORACLE_NAME {
+		client := m.(*oracle.ORACLE)
 		return client.AuthRetries(username, password)
 	}
 	return nil
@@ -87,6 +92,13 @@ func (e *Execute) validateService(host, port string) (any, error) {
 	}
 	if service == REDIS_NAME {
 		m, err := redis.New(host, port, e.options.Retries, e.options.Timeout)
+		if err != nil {
+			return m, err
+		}
+		return m, nil
+	}
+	if service == ORACLE_NAME {
+		m, err := oracle.New(host, port, e.options.Retries, e.options.Timeout)
 		if err != nil {
 			return m, err
 		}

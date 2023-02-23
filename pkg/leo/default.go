@@ -40,6 +40,11 @@ const (
 	FTP_PORT      = "21"
 	FTP_USER_DICS = "dics/ftp_user.txt"
 	FTP_PWDS_DICS = "dics/ftp_pass.txt"
+
+	ORACLE_NAME      = "oracle"
+	ORACLE_PORT      = "1521"
+	ORACLE_USER_DICS = "dics/oracle_user.txt"
+	ORACLE_PWDS_DICS = "dics/oracle_pass.txt"
 )
 
 const (
@@ -84,6 +89,11 @@ var DefaultServicePort = map[string]DefaultService{
 		Port:      FTP_PORT,
 		Users:     getDicsFromPath(FTP_USER_DICS),
 		Passwords: getDicsFromPath(FTP_PWDS_DICS),
+	},
+	ORACLE_NAME: {
+		Port:      ORACLE_PORT,
+		Users:     getDicsFromPath(ORACLE_USER_DICS),
+		Passwords: getDicsFromPath(ORACLE_PWDS_DICS),
 	},
 }
 

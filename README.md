@@ -7,8 +7,8 @@ Leo is a network logon cracker which support many different services.
 - mssql
 - ftp
 - postgres
-- oracle(todo)
-- redis(todo)
+- oracle
+- redis
 - mongodb(todo)
 - telnet(todo)
 - vnc(todo)
