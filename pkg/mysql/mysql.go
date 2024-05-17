@@ -56,7 +56,7 @@ func (mysql *MYSQL) AuthRetries(user, password string) (err error) {
 			continue
 		}
 
-		return nil
+		return err
 	}
 }
 
