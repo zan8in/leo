@@ -132,6 +132,10 @@ func ParseOptions() *Options {
 	return options
 }
 
+func NewOptionsApi(options *Options) error {
+	return options.validateOptions()
+}
+
 func (options *Options) validateOptions() error {
 	if len(options.Target) == 0 && len(options.Host) == 0 && len(options.HostFile) == 0 {
 		return ErrNoTargetOrHost

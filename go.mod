@@ -8,14 +8,14 @@ require (
 	github.com/gomodule/redigo v1.8.9
 	github.com/jlaffaye/ftp v0.1.0
 	github.com/lib/pq v1.10.7
-	github.com/panjf2000/ants/v2 v2.7.1
-	github.com/qiniu/qmgo v1.1.5
+	github.com/panjf2000/ants/v2 v2.9.1
+	github.com/qiniu/qmgo v1.1.8
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/sijms/go-ora/v2 v2.5.30
 	github.com/zan8in/goflags v0.0.0-20230204144650-0745934af58a
 	github.com/zan8in/gologger v0.0.0-20220917062627-c34a83c0a373
-	go.mongodb.org/mongo-driver v1.11.2
-	golang.org/x/crypto v0.6.0
+	go.mongodb.org/mongo-driver v1.15.0
+	golang.org/x/crypto v0.17.0
 )
 
 require (
@@ -39,14 +39,14 @@ require (
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.1.1 // indirect
-	github.com/xdg-go/stringprep v1.0.3 // indirect
+	github.com/xdg-go/scram v1.1.2 // indirect
+	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/zan8in/fileutil v0.0.0-20220917063910-ce47dcc0cfa9 // indirect
 	github.com/zan8in/stringsutil v0.0.0-20220917064022-03a0bd835142 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -1,4 +1,8 @@
-administrator
-test
+ftp
 admin
+www
 web
+root
+db
+wwwroot
+data

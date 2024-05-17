@@ -1,6 +1,2 @@
 sa
-test
-admin
-web
-root
-guest
+sql

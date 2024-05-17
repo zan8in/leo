@@ -1,3 +1,4 @@
+%user%
 %user%123
 %user%1234
 %user%12345
@@ -25,13 +26,14 @@
 %user%2021
 %user%2022
 %user%2023
+%user%2024
 %user%@2018
 %user%@2019
 %user%@2020
 %user%@2021
 %user%@2022
 %user%@2023
-%user%
+%user%@2024
 %upper-user%
 %upper-user%123
 %upper-user%1234
@@ -60,9 +62,11 @@
 %upper-user%2021
 %upper-user%2022
 %upper-user%2023
+%upper-user%2024
 %upper-user%@2018
 %upper-user%@2019
 %upper-user%@2020
 %upper-user%@2021
 %upper-user%@2022
 %upper-user%@2023
+%upper-user%@2024
