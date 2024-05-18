@@ -99,8 +99,15 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 		close(resultChan)
 	}()
 
-	p.Release()
-	return <-resultChan
+	select {
+	case result := <-resultChan:
+		if p != nil {
+			p.Release()
+		}
+		return result
+	case <-time.After(24 * time.Hour):
+		return nil
+	}
 }
 
 func (runner *Runner) RunApi2() *RunnerApiHostInfo {
