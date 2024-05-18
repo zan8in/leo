@@ -2,10 +2,14 @@ package leo
 
 import (
 	"fmt"
+	"math"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
+	portScan "github.com/XinRoom/go-portScan/core/port"
+	tcp "github.com/XinRoom/go-portScan/core/port/tcp"
 	"github.com/panjf2000/ants/v2"
 	"github.com/zan8in/gologger"
 )
@@ -88,9 +92,9 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 				continue
 			} else {
 				// 先验证端口存活
-				alive, _ := IsAliveWithRetries(host.Host, host.Port, runner.options.Retries, 6*time.Second)
-				if !alive {
-					gologger.Error().Msgf("%s:%s is not alive", host.Host, host.Port)
+				alive, err := IsAliveWithRetries(host.Host, host.Port, runner.options.Retries, 6*time.Second)
+				if !alive && err != nil {
+					gologger.Error().Msgf("%s", err.Error())
 					continue
 				}
 				// 如果端口存活，再进行爆破
@@ -144,6 +148,52 @@ func (runner *Runner) RunApi2() *RunnerApiHostInfo {
 
 // IsAliveWithRetries 尝试连接指定的 IP 地址和端口，并包含重试逻辑
 func IsAliveWithRetries(ip string, port string, retries int, timeout time.Duration) (bool, error) {
+
+	retChan := make(chan portScan.OpenIpPort, 1)
+
+	ss, err := tcp.NewTcpScanner(retChan, tcp.DefaultTcpOption)
+	if err != nil {
+		return false, err
+	}
+
+	if iprst := net.ParseIP(ip); iprst != nil {
+		if portrst, err := stringToUint16(port); err == nil {
+			ss.Scan(iprst, portrst)
+			ss.Wait()
+		}
+	}
+
+	if len(retChan) == 0 {
+		close(retChan)
+		return false, fmt.Errorf("%s:%s is not open", ip, port)
+	}
+
+	select {
+	case <-retChan:
+		return true, nil
+	case <-time.After(time.Duration(30) * time.Second):
+		return false, fmt.Errorf("timeout %s:%s is not open", ip, port)
+	}
+
+}
+
+func stringToUint16(s string) (uint16, error) {
+	// 首先尝试将字符串解析为int64
+	i, err := strconv.ParseInt(s, 10, 16) // 第三个参数指定了解析的整数类型的大小，这里我们指定为16位（即uint16的范围）
+	if err != nil {
+		return 0, err // 返回错误
+	}
+
+	// 检查转换后的整数是否在uint16的范围内
+	if i < 0 || i > math.MaxUint16 { // 注意：需要导入"math"包来使用MaxUint16
+		return 0, fmt.Errorf("value %d out of range for uint16", i)
+	}
+
+	// 将int64转换为uint16
+	return uint16(i), nil
+}
+
+func IsAliveWithRetries2(ip string, port string, retries int, timeout time.Duration) (bool, error) {
 	target := fmt.Sprintf("%s:%s", ip, port)
 	var err error
 	for i := 0; i < retries; i++ {

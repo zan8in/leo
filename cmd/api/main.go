@@ -8,8 +8,8 @@ import (
 
 func main() {
 	opt := leo.Options{
-		// Target: "mysql://192.168.3.25",
-		Target: "ftp://8.140.125.199",
+		Target: "mysql://192.168.3.25",
+		// Target: "mysql://101.37.25.23:3306",
 		// User:         "root",
 		// PasswordFile: "./p.txt",
 		Concurrency: 5,
