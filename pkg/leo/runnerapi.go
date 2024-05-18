@@ -58,9 +58,10 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 			m := hostinfo.Model
 
 			if err := runner.execute.start(host, username, pass, m); err == nil {
+				gologger.Print().Msgf("[+]Find success, host: %s, username: %s, password: %s", host, username, pass)
 				resultChan <- &RunnerApiHostInfo{HostInfo: hostinfo.HostInfo, Username: username, Password: pass}
 			} else {
-				fmt.Println("host:", host, "username:", username, "password:", pass, "err:", err)
+				// fmt.Println("host:", host, "username:", username, "password:", pass, "err:", err)
 			}
 
 		})
@@ -68,14 +69,13 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 
 		for _, host := range runner.options.Hosts {
 			if m, _, err := runner.execute.validateService(host.Host, host.Port); err != nil && m == nil {
-				gologger.Error().Msgf("++host: %s, port: %s, err: %s", host.Host, host.Port, err)
-				fmt.Println(m)
+				gologger.Error().Msgf("host: %s, port: %s, err: %s", host.Host, host.Port, err)
 				continue
 			} else {
 				// 先验证端口存活
 				alive, err := IsAliveWithRetries(host.Host, host.Port, runner.options.Retries, 6*time.Second)
 				if !alive && err != nil {
-					gologger.Error().Msgf("%s", err.Error())
+					gologger.Print().Msgf("%s", err.Error())
 					continue
 				}
 				// 如果端口存活，再进行爆破
