@@ -22,7 +22,7 @@ const (
 	MYSQL_PWDS_DICS = "dics/mysql_pass.txt"
 
 	MSSQL_NAME      = "mssql"
-	MSSQL_PORT      = "3306"
+	MSSQL_PORT      = "1433"
 	MSSQL_USER_DICS = "dics/mssql_user.txt"
 	MSSQL_PWDS_DICS = "dics/mssql_pass.txt"
 
