@@ -43,6 +43,15 @@ func NewRunnerApi(options *Options) (*Runner, error) {
 		return runner, ErrNoPasses
 	}
 
+	fmt.Println("user count:", len(options.Users), "password count:", len(options.Passwords))
+	for _, user := range options.Users {
+		fmt.Println("++++++++++++user:", user)
+	}
+
+	for _, pass := range options.Passwords {
+		fmt.Println("++++++++++++password:", pass)
+	}
+
 	options.Count = uint32(len(options.Hosts) * len(options.Users) * len(options.Passwords))
 
 	runner.execute = NewExecute(options)
