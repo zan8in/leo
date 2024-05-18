@@ -2,6 +2,10 @@ package leo
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
+	"github.com/panjf2000/ants/v2"
 )
 
 func NewRunnerApi(options *Options) (*Runner, error) {
@@ -42,13 +46,64 @@ func NewRunnerApi(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
-type RunnerApiResult struct {
+type RunnerApiHostInfo struct {
 	HostInfo HostInfo
 	Username string
 	Password string
+	Model    any
 }
 
-func (runner *Runner) RunApi() *RunnerApiResult {
+func (runner *Runner) RunApi() *RunnerApiHostInfo {
+
+	var resultChan = make(chan *RunnerApiHostInfo, 1)
+	var p *ants.PoolWithFunc
+
+	go func() {
+		var wg sync.WaitGroup
+		ticker := time.NewTicker(time.Second / time.Duration(runner.options.RateLimit))
+		p, _ = ants.NewPoolWithFunc(runner.options.Concurrency, func(p any) {
+			defer wg.Done()
+			<-ticker.C
+
+			hostinfo := p.(*RunnerApiHostInfo)
+			username, password := hostinfo.Username, hostinfo.Password
+			pass := handlePassword(username, password)
+			host := hostinfo.HostInfo.Host
+			m := hostinfo.Model
+
+			if err := runner.execute.start(host, username, pass, m); err == nil {
+				resultChan <- &RunnerApiHostInfo{HostInfo: hostinfo.HostInfo, Username: username, Password: pass}
+			} else {
+				fmt.Println("host:", host, "username:", username, "password:", pass, "err:", err)
+			}
+
+		})
+		defer p.Release()
+
+		for _, host := range runner.options.Hosts {
+			if m, ret, err := runner.execute.validateService(host.Host, host.Port); err != nil {
+				fmt.Println("m:", m, "ret:", ret, "err:", err)
+				continue
+			} else {
+				for _, username := range runner.options.Users {
+					for _, password := range runner.options.Passwords {
+						wg.Add(1)
+						_ = p.Invoke(&RunnerApiHostInfo{HostInfo: host, Username: username, Password: password, Model: m})
+
+					}
+				}
+			}
+		}
+		wg.Wait()
+
+		close(resultChan)
+	}()
+
+	p.Release()
+	return <-resultChan
+}
+
+func (runner *Runner) RunApi2() *RunnerApiHostInfo {
 
 	for _, host := range runner.options.Hosts {
 		m, ret, err := runner.execute.validateService(host.Host, host.Port)
@@ -60,7 +115,7 @@ func (runner *Runner) RunApi() *RunnerApiResult {
 			for _, password := range runner.options.Passwords {
 				pass := handlePassword(username, password)
 				if err := runner.execute.start(host.Host, username, pass, m); err == nil {
-					return &RunnerApiResult{HostInfo: host, Username: username, Password: pass}
+					return &RunnerApiHostInfo{HostInfo: host, Username: username, Password: pass}
 				} else {
 					fmt.Println("host:", host, "username:", username, "password:", pass, "err:", err)
 				}
