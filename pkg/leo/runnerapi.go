@@ -2,10 +2,12 @@ package leo
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
 	"github.com/panjf2000/ants/v2"
+	"github.com/zan8in/gologger"
 )
 
 func NewRunnerApi(options *Options) (*Runner, error) {
@@ -81,10 +83,17 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 		defer p.Release()
 
 		for _, host := range runner.options.Hosts {
-			if m, ret, err := runner.execute.validateService(host.Host, host.Port); err != nil {
-				fmt.Println("m:", m, "ret:", ret, "err:", err)
+			if m, _, err := runner.execute.validateService(host.Host, host.Port); err != nil {
+				gologger.Error().Msgf("host: %s, port: %s, err: %s", host.Host, host.Port, err)
 				continue
 			} else {
+				// 先验证端口存活
+				alive, _ := IsAliveWithRetries(host.Host, host.Port, runner.options.Retries, 6*time.Second)
+				if !alive {
+					gologger.Error().Msgf("%s:%s is not alive", host.Host, host.Port)
+					continue
+				}
+				// 如果端口存活，再进行爆破
 				for _, username := range runner.options.Users {
 					for _, password := range runner.options.Passwords {
 						wg.Add(1)
@@ -131,4 +140,25 @@ func (runner *Runner) RunApi2() *RunnerApiHostInfo {
 	}
 
 	return nil
+}
+
+// IsAliveWithRetries 尝试连接指定的 IP 地址和端口，并包含重试逻辑
+func IsAliveWithRetries(ip string, port string, retries int, timeout time.Duration) (bool, error) {
+	target := fmt.Sprintf("%s:%s", ip, port)
+	var err error
+	for i := 0; i < retries; i++ {
+		conn, err := net.DialTimeout("tcp", target, timeout)
+		if err == nil {
+			// 连接成功，关闭连接并返回 true
+			conn.Close()
+			return true, nil
+		}
+		// 如果连接失败，等待一段时间后重试（可选的退避策略）
+		if i < retries-1 {
+			// 这里可以添加退避策略，比如指数退避
+			time.Sleep(time.Duration(i) * time.Second) // 示例：线性退避
+		}
+	}
+	// 所有重试都失败，返回 false 和最后一个错误
+	return false, err
 }

@@ -9,11 +9,11 @@ import (
 func main() {
 	opt := leo.Options{
 		// Target: "mysql://192.168.3.25",
-		Target:       "ssh://121.37.66.33",
-		User:         "root",
-		PasswordFile: "./p.txt",
-		Concurrency:  5,
-		RateLimit:    5,
+		Target: "ftp://8.140.125.199",
+		// User:         "root",
+		// PasswordFile: "./p.txt",
+		Concurrency: 5,
+		RateLimit:   5,
 	}
 
 	if err := leo.NewOptionsApi(&opt); err != nil {
