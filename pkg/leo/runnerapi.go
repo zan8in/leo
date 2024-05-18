@@ -5,6 +5,7 @@ import (
 	"math"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,38 +20,8 @@ func NewRunnerApi(options *Options) (*Runner, error) {
 		options: options,
 	}
 
-	defaultPort := DefaultServicePort[options.Service]
-
-	if len(options.User) == 0 && len(options.UserFile) == 0 {
-		options.Users = append(options.Users, defaultPort.Users...)
-	} else {
-		options.convertUsers()
-	}
-
-	if len(options.Users) == 0 {
-		return runner, ErrNoUsers
-	}
-
-	options.Passwords = initPasswords()
-
-	if len(options.Password) == 0 && len(options.PasswordFile) == 0 {
-		options.Passwords = append(options.Passwords, defaultPort.Passwords...)
-	} else {
-		options.convertPasswords()
-	}
-
-	if len(options.Passwords) == 0 {
-		return runner, ErrNoPasses
-	}
-
-	fmt.Println("user count:", len(options.Users), "password count:", len(options.Passwords))
-	for _, user := range options.Users {
-		fmt.Println("++++++++++++user:", user)
-	}
-
-	for _, pass := range options.Passwords {
-		fmt.Println("++++++++++++password:", pass)
-	}
+	options.Users = append(options.Users, Userdict[options.Service]...)
+	options.Passwords = append(options.Passwords, Passdict...)
 
 	options.Count = uint32(len(options.Hosts) * len(options.Users) * len(options.Passwords))
 
@@ -82,7 +53,7 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 
 			hostinfo := p.(*RunnerApiHostInfo)
 			username, password := hostinfo.Username, hostinfo.Password
-			pass := handlePassword(username, password)
+			pass := GetPasswordByUser(username, password)
 			host := hostinfo.HostInfo.Host
 			m := hostinfo.Model
 
@@ -96,8 +67,9 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 		defer p.Release()
 
 		for _, host := range runner.options.Hosts {
-			if m, _, err := runner.execute.validateService(host.Host, host.Port); err != nil {
-				gologger.Error().Msgf("host: %s, port: %s, err: %s", host.Host, host.Port, err)
+			if m, _, err := runner.execute.validateService(host.Host, host.Port); err != nil && m == nil {
+				gologger.Error().Msgf("++host: %s, port: %s, err: %s", host.Host, host.Port, err)
+				fmt.Println(m)
 				continue
 			} else {
 				// 先验证端口存活
@@ -130,29 +102,6 @@ func (runner *Runner) RunApi() *RunnerApiHostInfo {
 	case <-time.After(24 * time.Hour):
 		return nil
 	}
-}
-
-func (runner *Runner) RunApi2() *RunnerApiHostInfo {
-
-	for _, host := range runner.options.Hosts {
-		m, ret, err := runner.execute.validateService(host.Host, host.Port)
-		if err != nil {
-			fmt.Println("m:", m, "ret:", ret, "err:", err)
-			continue
-		}
-		for _, username := range runner.options.Users {
-			for _, password := range runner.options.Passwords {
-				pass := handlePassword(username, password)
-				if err := runner.execute.start(host.Host, username, pass, m); err == nil {
-					return &RunnerApiHostInfo{HostInfo: host, Username: username, Password: pass}
-				} else {
-					fmt.Println("host:", host, "username:", username, "password:", pass, "err:", err)
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 // IsAliveWithRetries 尝试连接指定的 IP 地址和端口，并包含重试逻辑
@@ -202,22 +151,26 @@ func stringToUint16(s string) (uint16, error) {
 	return uint16(i), nil
 }
 
-func IsAliveWithRetries2(ip string, port string, retries int, timeout time.Duration) (bool, error) {
-	target := fmt.Sprintf("%s:%s", ip, port)
-	var err error
-	for i := 0; i < retries; i++ {
-		conn, err := net.DialTimeout("tcp", target, timeout)
-		if err == nil {
-			// 连接成功，关闭连接并返回 true
-			conn.Close()
-			return true, nil
-		}
-		// 如果连接失败，等待一段时间后重试（可选的退避策略）
-		if i < retries-1 {
-			// 这里可以添加退避策略，比如指数退避
-			time.Sleep(time.Duration(i) * time.Second) // 示例：线性退避
-		}
+var (
+	Userdict = map[string][]string{
+		"ftp":      {"ftp", "admin", "www", "web", "root", "db", "wwwroot", "data"},
+		"mysql":    {"root", "mysql"},
+		"mssql":    {"sa", "sql"},
+		"smb":      {"administrator", "admin", "guest"},
+		"rdp":      {"administrator", "admin", "guest"},
+		"postgres": {"postgres", "admin"},
+		"ssh":      {"root", "admin"},
+		"mongodb":  {"root", "admin"},
+		"oracle":   {"sys", "system", "admin", "test", "web", "orcl"},
 	}
-	// 所有重试都失败，返回 false 和最后一个错误
-	return false, err
+
+	Passdict = []string{"123456", "admin", "admin123", "root", "", "pass123", "pass@123", "password", "123123", "654321", "111111", "123", "1", "admin@123", "Admin@123", "admin123!@#", "{user}", "{user}1", "{user}111", "{user}123", "{user}@123", "{user}_123", "{user}#123", "{user}@111", "{user}@2019", "{user}@123#4", "P@ssw0rd!", "P@ssw0rd", "Passw0rd", "qwe123", "12345678", "test", "test123", "123qwe", "123qwe!@#", "123456789", "123321", "666666", "a123456.", "123456~a", "123456!a", "000000", "1234567890", "8888888", "!QAZ2wsx", "1qaz2wsx", "abc123", "abc123456", "1qaz@WSX", "a11111", "a12345", "Aa1234", "Aa1234.", "Aa12345", "a123456", "a123123", "Aa123123", "Aa123456", "Aa12345.", "sysadmin", "system", "1qaz!QAZ", "2wsx@WSX", "qwe123!@#", "Aa123456!", "A123456s!", "sa123456", "1q2w3e", "Charge123", "Aa123456789"}
+)
+
+func GetPasswordByUser(user, pass string) string {
+	if strings.HasPrefix(pass, "{user}") {
+		pass = strings.ReplaceAll(pass, "{user}", user)
+	}
+	return pass
+
 }
