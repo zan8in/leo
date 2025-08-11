@@ -1,0 +1,24 @@
+services:
+  mysql:
+    driver: "mysql"
+    default_port: 3306
+    timeout: "5s"  # 简化超时配置
+    
+# 删除 engine 配置中的 pool 部分
+engine:
+  concurrency: 3
+  timeout: "8s"
+  retries: 1
+  rate_limit: 10
+  # 删除 pool 配置
+
+default_credentials:
+  usernames:
+    - "admin"
+    - "root"
+  passwords:
+    - ""
+    - "admin"
+    - "123456"
+    - "password"
+    - "root"
