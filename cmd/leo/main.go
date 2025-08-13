@@ -19,6 +19,9 @@ import (
 )
 
 func main() {
+	// 显示banner
+	printBanner()
+
 	var (
 		target        = flag.String("t", "", "Target host")
 		targetFile    = flag.String("T", "", "Target file (one target per line)")
@@ -542,4 +545,12 @@ func getDefaultPasswords(service string) []string {
 	default:
 		return []string{"", "123456", "password", "admin", "root"}
 	}
+}
+
+// printBanner 显示启动横幅
+func printBanner() {
+	fmt.Println("\n   Leo - Network Service Scanner")
+	fmt.Println("   Version: 2.0.0")
+	fmt.Println("   Author: zan8in")
+	fmt.Println("   GitHub: https://github.com/zan8in/leo\n")
 }
