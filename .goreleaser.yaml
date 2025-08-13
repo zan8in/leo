@@ -21,10 +21,10 @@ builds:
       - -s
       - -w
 
-# 修复废弃的配置项
 archives:
-  - formats: [zip] # 替换 format: zip
-    ids: [leo] # 替换 builds: [leo]
+  - format: zip
+    id: leo
+    builds: [leo]
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macOS{{ else }}{{ .Os }}{{ end }}_{{ .Arch }}'
 
 checksum:

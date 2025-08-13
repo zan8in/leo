@@ -3,39 +3,39 @@ name: 🎉 Release Binary
 on:
   push:
     tags:
-      - "v*" # 仅匹配版本标签，如 v1.0.0
+      - "v*"
   workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 明确指定写入权限
+      contents: write
     env:
       GOPRIVATE: github.com/zan8in
       GOPROXY: https://proxy.golang.org,direct
       GONOSUMDB: github.com/zan8in
 
     steps:
-      - uses: actions/checkout@v4 # 更新到v4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - uses: actions/setup-go@v4
         with:
-          go-version: "1.24" # 使用稳定版本
+          go-version: 1.24.x # 使用最新 Go 版本
 
       - name: Download and verify Go modules
         run: |
           go mod download
           go mod verify
 
-      - uses: goreleaser/goreleaser-action@v5 # 更新到v5
+      - uses: goreleaser/goreleaser-action@v4
         with:
-          args: release --clean
-          version: latest
+          args: release --clean # 添加 --clean
+          version: "~> v2" # 修改版本
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用默认token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOPRIVATE: github.com/zan8in
           GOPROXY: https://proxy.golang.org,direct
           GONOSUMDB: github.com/zan8in
