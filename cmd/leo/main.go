@@ -504,6 +504,7 @@ func getDefaultUsernames(service string) []string {
 		"mssql":      {"sa", "admin", "administrator", "root"},
 		"dameng":     {"SYSDBA", "SYSAUDITOR", "SYSSSO", "SYS", "SYSDBO"},
 		"rdp":        {"administrator", "admin", "guest"},
+		"telnet":     {"admin", "root", "user", "administrator", "guest", "cisco", "manager", "operator", "support", "test"},
 	}
 	if users, exists := usernames[service]; exists {
 		return users
@@ -534,6 +535,8 @@ func getDefaultPasswords(service string) []string {
 		return []string{"", "123456", "password", "admin", "root", "123123", "111111", "000000", "888888", "666666", "ubuntu", "centos", "raspberry", "toor", "pass", "qwerty", "abc123"}
 	case "rdp":
 		return []string{"", "123456", "password", "admin", "administrator", "123123", "111111", "000000", "888888", "666666", "P@ssw0rd", "Password123", "admin123", "root123", "guest"}
+	case "telnet":
+		return []string{"", "123456", "password", "admin", "root", "123123", "111111", "000000", "888888", "666666", "cisco", "manager", "public", "private", "enable", "secret", "guest", "test", "support", "operator"}
 	default:
 		return []string{"", "123456", "password", "admin", "root"}
 	}
