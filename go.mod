@@ -9,6 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jlaffaye/ftp v0.2.0
 	github.com/lib/pq v1.10.9
+	github.com/mitchellh/go-vnc v0.0.0-20150629162542-723ed9867aed
 	github.com/sijms/go-ora/v2 v2.9.0
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.26.0

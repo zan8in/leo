@@ -537,6 +537,8 @@ func getDefaultPasswords(service string) []string {
 		return []string{"", "123456", "password", "admin", "administrator", "123123", "111111", "000000", "888888", "666666", "P@ssw0rd", "Password123", "admin123", "root123", "guest"}
 	case "telnet":
 		return []string{"", "123456", "password", "admin", "root", "123123", "111111", "000000", "888888", "666666", "cisco", "manager", "public", "private", "enable", "secret", "guest", "test", "support", "operator"}
+	case "vnc":
+		return []string{"", "123456", "password", "admin", "vnc", "123123", "111111", "000000", "888888", "666666", "secret", "pass", "qwerty", "abc123", "root123", "admin123"}
 	default:
 		return []string{"", "123456", "password", "admin", "root"}
 	}
